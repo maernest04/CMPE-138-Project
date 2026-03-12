@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Advisors – Senior Capstone Viewer{% endblock %}
+{% block content %}
+<h1>Advisors</h1>
+<p class="text-muted">Advisors can supervise up to 2 teams. Remaining = capacity left.</p>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Department</th>
+      <th>Teams</th>
+      <th>Remaining</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for a in advisors %}
+    <tr>
+      <td>{{ a.name }}</td>
+      <td>{{ a.email }}</td>
+      <td>{{ a.department or "—" }}</td>
+      <td>{{ a.current_teams or 0 }} / {{ a.max_teams }}</td>
+      <td>
+        {% if a.remaining > 0 %}
+        <span class="badge bg-success">{{ a.remaining }}</span>
+        {% else %}
+        <span class="badge bg-secondary">Full</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% if not advisors %}
+<p class="text-muted">No advisors yet. Add some via your DB or a future form.</p>
+{% endif %}
+{% endblock %}

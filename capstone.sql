@@ -67,7 +67,6 @@ CREATE TABLE project_team (
 ) ENGINE=InnoDB;
 
 -- 7) Student ↔ team membership
--- (You enforce “one team per student per section” in application logic)
 CREATE TABLE team_student (
   team_id    INT NOT NULL,
   student_id CHAR(9) NOT NULL,
@@ -81,7 +80,6 @@ CREATE TABLE team_student (
 ) ENGINE=InnoDB;
 
 -- 8) Advisor ↔ team assignments
--- You will enforce “max 2 teams per advisor” in application logic
 CREATE TABLE advisor_assignment (
   advisor_assignment_id INT AUTO_INCREMENT PRIMARY KEY,
   advisor_id            INT NOT NULL,
@@ -94,4 +92,3 @@ CREATE TABLE advisor_assignment (
     ON UPDATE CASCADE ON DELETE CASCADE,
   UNIQUE KEY uniq_advisor_team (advisor_id, team_id)
 ) ENGINE=InnoDB;
-
