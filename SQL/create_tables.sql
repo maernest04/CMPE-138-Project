@@ -1,9 +1,12 @@
--- Optional: create and use a dedicated database
+-- SJSU CMPE 138 SPRING 2026 TEAM2
+
+-- Core schema for Senior Capstone Viewer
+
 CREATE DATABASE IF NOT EXISTS senior_capstone_viewer;
 USE senior_capstone_viewer;
 
 -- 1) Semester: Spring/Fall + year
-CREATE TABLE semester (
+CREATE TABLE IF NOT EXISTS semester (
   semester_id INT AUTO_INCREMENT PRIMARY KEY,
   year        INT NOT NULL,
   season      ENUM('Spring','Fall') NOT NULL,
@@ -11,7 +14,7 @@ CREATE TABLE semester (
 ) ENGINE=InnoDB;
 
 -- 2) Course section (e.g., CMPE195A-01) per semester
-CREATE TABLE course_section (
+CREATE TABLE IF NOT EXISTS course_section (
   section_id      INT AUTO_INCREMENT PRIMARY KEY,
   course_code     VARCHAR(20) NOT NULL,
   section_number  VARCHAR(10) NOT NULL,
@@ -23,7 +26,7 @@ CREATE TABLE course_section (
 ) ENGINE=InnoDB;
 
 -- 3) Students (9-digit ID, no status)
-CREATE TABLE student (
+CREATE TABLE IF NOT EXISTS student (
   student_id CHAR(9) PRIMARY KEY,
   first_name VARCHAR(50) NOT NULL,
   last_name  VARCHAR(50) NOT NULL,
@@ -33,7 +36,7 @@ CREATE TABLE student (
 ) ENGINE=InnoDB;
 
 -- 4) Advisors (faculty) with capacity = 2 teams by default
-CREATE TABLE advisor (
+CREATE TABLE IF NOT EXISTS advisor (
   advisor_id INT AUTO_INCREMENT PRIMARY KEY,
   name       VARCHAR(100) NOT NULL,
   email      VARCHAR(100) NOT NULL,
@@ -43,7 +46,7 @@ CREATE TABLE advisor (
 ) ENGINE=InnoDB;
 
 -- 5) Industry collaborators / companies
-CREATE TABLE company (
+CREATE TABLE IF NOT EXISTS company (
   company_id    INT AUTO_INCREMENT PRIMARY KEY,
   company_name  VARCHAR(150) NOT NULL,
   contact_name  VARCHAR(100),
@@ -52,7 +55,7 @@ CREATE TABLE company (
 ) ENGINE=InnoDB;
 
 -- 6) Project teams, per section, optionally linked to a company
-CREATE TABLE project_team (
+CREATE TABLE IF NOT EXISTS project_team (
   team_id    INT AUTO_INCREMENT PRIMARY KEY,
   team_name  VARCHAR(100) NOT NULL,
   section_id INT NOT NULL,
@@ -67,7 +70,7 @@ CREATE TABLE project_team (
 ) ENGINE=InnoDB;
 
 -- 7) Student ↔ team membership
-CREATE TABLE team_student (
+CREATE TABLE IF NOT EXISTS team_student (
   team_id    INT NOT NULL,
   student_id CHAR(9) NOT NULL,
   PRIMARY KEY (team_id, student_id),
@@ -80,7 +83,7 @@ CREATE TABLE team_student (
 ) ENGINE=InnoDB;
 
 -- 8) Advisor ↔ team assignments
-CREATE TABLE advisor_assignment (
+CREATE TABLE IF NOT EXISTS advisor_assignment (
   advisor_assignment_id INT AUTO_INCREMENT PRIMARY KEY,
   advisor_id            INT NOT NULL,
   team_id               INT NOT NULL,
@@ -92,3 +95,4 @@ CREATE TABLE advisor_assignment (
     ON UPDATE CASCADE ON DELETE CASCADE,
   UNIQUE KEY uniq_advisor_team (advisor_id, team_id)
 ) ENGINE=InnoDB;
+

@@ -1,4 +1,7 @@
--- Simple DB views for common UI screens
+-- SJSU CMPE 138 SPRING 2026 TEAM2
+
+-- Views for Senior Capstone Viewer
+
 USE senior_capstone_viewer;
 
 -- Advisor capacity summary (availability is derived)
@@ -59,4 +62,3 @@ JOIN project_team t ON t.team_id = ts.team_id
 JOIN student st ON st.student_id = ts.student_id
 JOIN course_section s ON s.section_id = t.section_id
 JOIN semester sem ON sem.semester_id = s.semester_id;
-

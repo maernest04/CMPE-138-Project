@@ -1,10 +1,85 @@
 # CMPE-138-Project
 
-Senior Capstone Viewer – CMPE 195 project management for course professors.
+Senior Capstone Viewer – CMPE 195 project management for course professors and students.
+
+This repository will be organized as the **DB-Application** root for the CMPE 138 term project.
+
+## Miniworld overview
+
+This application is a small database-backed system to help manage CMPE 195 senior capstone projects.
+It tracks semesters, course sections, students, advisors, companies, project teams, and team membership.
+
+There are two main actors:
+
+- **Admin (course professor / TA)**: manages course sections, enrolls students into sections, creates and edits
+  project teams, and assigns advisors/industry partners to teams. Admins can see and manage all data for the
+  sections they own.
+- **Student**: logs in, sees their own profile, section, team, advisor(s), and company, and can either create a
+  new team in their section (if they are not already on a team) or join an existing team in their section.
+
+The core of the project is the **relational database schema** (SQL scripts under `SQL/`) plus a Node.js/Express
+application (backend) and a React frontend that demonstrate the required operations using explicit SQL queries
+against MySQL (no ORM).
+
+## Tech stack and architecture
+
+- **Frontend**: React (SPA) – role-based UI for admins and students.
+- **Backend**: Node.js + Express – REST/JSON API, explicit SQL queries using `mysql2` or similar (no ORM).
+- **Database**: MySQL – schema defined and loaded from SQL scripts.
+- **Logging**: Node.js logging to a text file under `Log/app.log`.
+
+High-level flow:
+
+React frontend  
+↓  
+Node.js + Express backend (JSON API)  
+↓  
+MySQL database (tables, views, stored procedures, triggers)
+
+## High-level operations (by role)
+
+- **Admin**
+  - View semesters and course sections.
+  - For a given section, view and manage enrolled students.
+  - Create, edit, and delete project teams in a section.
+  - Assign students to teams (or remove them) via team membership.
+  - Assign advisors and (optionally) industry companies to teams.
+  - View advisor capacity and current team load.
+
+- **Student**
+  - Log in to the system and see their own information.
+  - View their course section, team, teammates, advisor(s), and company.
+  - If not already on a team in that section, create a new team and become its first member.
+  - If teams already exist in their section, join an existing team that has capacity.
+
+Login, password hashing, and role-based behavior will be implemented in the **Express backend**.
+
+## Project layout
+
+At the end of the project, the folder structure under this repository will match the required CMPE 138 layout:
+
+```text
+CMPE138_TEAMn_SOURCES/
+  DB-Application/            # this repo (application + SQL + logs)
+    backend/                 # Node.js + Express source code
+    frontend/                # React frontend source code
+    SQL/
+      create_tables.sql      # schema (tables, FKs, constraints)
+      create_views.sql       # views
+      triggers.sql           # triggers (if any)
+      procedures.sql         # stored procedures (if any)
+      sample_data.sql        # sample data for demo/dev
+    Log/
+      app.log                # application log file(s)
+```
+
+This repository is treated as `DB-Application/` in the hierarchy above.
 
 ## Setup
 
 ### 1) MySQL database (schema + app user)
+
+> Note: SQL files will be moved under `SQL/` and renamed as part of Task 2. The commands below assume they already live there.
 
 1. Log into MySQL as root (interactive):
 
@@ -12,29 +87,27 @@ Senior Capstone Viewer – CMPE 195 project management for course professors.
    mysql -u root -p
    ```
 
-2. Create tables by running the schema file.
+2. Create tables and load sample data by running the schema files.
 
    - Option A (from your normal terminal):
 
-     ```bash
-     mysql -u root -p < reset.sql
-     mysql -u root -p < capstone.sql
-     mysql -u root -p < views.sql
-     mysql -u root -p < seed.sql
-     ```
+   ```bash
+   mysql -u root -p < SQL/create_tables.sql
+   mysql -u root -p < SQL/create_views.sql
+   mysql -u root -p < SQL/triggers.sql        # if any
+   mysql -u root -p < SQL/procedures.sql     # if any
+   mysql -u root -p < SQL/sample_data.sql
+   ```
 
    - Option B (from inside the MySQL prompt):
 
-     ```sql
-     SOURCE reset.sql;
-     SOURCE capstone.sql;
-     SOURCE views.sql;
-     SOURCE seed.sql;
-     ```
-
-   Note:
-   - `reset.sql` wipes the database so you can start clean.
-   - If you skip `reset.sql` and see `Table 'semester' already exists`, you already ran the schema once.
+   ```sql
+   SOURCE SQL/create_tables.sql;
+   SOURCE SQL/create_views.sql;
+   SOURCE SQL/triggers.sql;
+   SOURCE SQL/procedures.sql;
+   SOURCE SQL/sample_data.sql;
+   ```
 
 3. Create a dedicated app user (recommended) and grant access:
 
@@ -52,61 +125,68 @@ Senior Capstone Viewer – CMPE 195 project management for course professors.
    SHOW TABLES;
    ```
 
-### 2) Python dependencies
+### 2) Backend (Node.js + Express)
 
-Install Python dependencies:
+> The backend will live under `backend/` and use raw SQL (no ORM) via `mysql2` or a similar driver.
 
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-### 3) Run the web app
-
-Set DB config via environment (recommended: use `scv_user`):
+1. Install dependencies:
 
    ```bash
-   export MYSQL_USER=scv_user
-   export MYSQL_PASSWORD=scv_password
-   export MYSQL_DATABASE=senior_capstone_viewer
+   cd backend
+   npm install
    ```
 
-Run the app from the project root (use module form so it always works):
+2. Configure environment variables for DB connection (for example):
 
    ```bash
-   python3 -m uvicorn app.main:app --reload
+   export DB_HOST=localhost
+   export DB_PORT=3306
+   export DB_USER=scv_user
+   export DB_PASSWORD=scv_password
+   export DB_NAME=senior_capstone_viewer
    ```
 
-   Open http://127.0.0.1:8000
+3. Start the backend server (exact script name may vary once implemented):
+
+   ```bash
+   npm run dev
+   ```
+
+### 3) Frontend (React)
+
+> The frontend will live under `frontend/` and call the Express backend using JSON APIs.
+
+1. Install dependencies:
+
+   ```bash
+   cd frontend
+   npm install
+   ```
+
+2. Start the React dev server (exact script name may vary once implemented):
+
+   ```bash
+   npm run dev
+   ```
+
+3. Open the printed URL in your browser (for example, `http://localhost:5173`) and make sure it can reach the backend API.
 
 ### Troubleshooting
 
-- If you see `Access denied ... (using password: NO)`:
-  - your `MYSQL_PASSWORD` environment variable is not set in the same terminal that started uvicorn.
-- If you see `Access denied ... (using password: YES)`:
-  - the user/password is wrong, or the user was never created/granted privileges.
+- **Database access denied**:
+  - Check that the MySQL user/password in your environment variables match the user you created.
+  - Verify that the DB name (`senior_capstone_viewer`) exists and that the user has privileges on it.
+- **Backend cannot reach DB**:
+  - Make sure MySQL is running and listening on the expected host/port.
+  - Try a simple manual connection using the same credentials from the terminal.
+- **Frontend cannot reach backend**:
+  - Check CORS configuration on the Express backend (if needed).
+  - Verify that the backend URL and port used in the React app are correct.
 
-## Project layout
+## Responsibilities (Task 1 – Docs owner)
 
-- `capstone.sql` – MySQL schema
-- `reset.sql` – drops DB for clean reset
-- `views.sql` – DB views used for common screens
-- `seed.sql` – sample data for demo/dev
-- `queries.sql` – canonical SQL queries to copy into routers
-- `app/main.py` – FastAPI app and routes
-- `app/db.py` – MySQL connection helper
-- `app/routers/` – feature routers (advisors, students, teams, etc.)
-- `app/templates/` – Jinja2 HTML templates
-- `app/static/` – static assets
+The person owning Task 1 is responsible for keeping:
 
-## Base responsibilities (Person 1)
-
-These are the “foundation” items to finish so the other 4 teammates can build features quickly:
-
-- Ensure `capstone.sql` is final and matches the agreed rules:
-  - `semester.season` is `Spring/Fall`
-  - `student.student_id` is `CHAR(9)`
-  - `advisor.max_teams` defaults to `2`
-- Keep this README accurate so teammates can run everything.
-- Keep `app/db.py` as the single source of truth for MySQL config (via env vars).
-- Keep `app/main.py` as the place where new routers get registered.
-- Provide at least one “example feature” fully working (advisors list is already the reference pattern).
+- This `README.md` accurate as the project structure and setup evolve.
+- The miniworld, actors/roles, and operations in sync with how the system actually behaves.
+- The proposal text (see `PROPOSAL_NOTES.md`) aligned with the database design and implementation.

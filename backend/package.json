@@ -1,0 +1,15 @@
+{
+  "name": "senior-capstone-viewer-backend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "node src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.0",
+    "mysql2": "^3.9.2",
+    "morgan": "^1.10.0",
+    "cors": "^2.8.5"
+  }
+}
+

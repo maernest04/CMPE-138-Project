@@ -1,4 +1,6 @@
+-- SJSU CMPE 138 SPRING 2026 TEAM2
 -- Sample data for development/demo
+
 USE senior_capstone_viewer;
 
 -- Semesters
@@ -18,24 +20,24 @@ ON DUPLICATE KEY UPDATE course_code = VALUES(course_code);
 
 -- Advisors (max_teams defaults to 2)
 INSERT INTO advisor (name, email, department) VALUES
-  ('Prof. Ada Lovelace', 'ada@sjsu.edu', 'CMPE'),
-  ('Prof. Alan Turing', 'alan@sjsu.edu', 'CMPE'),
-  ('Prof. Grace Hopper', 'grace@sjsu.edu', 'SE')
+  ('Ben Reed', 'ben.reed@sjsu.edu', 'SWE'),
+  ('Daphne Chen', 'daphne.chen@sjsu.edu', 'CMPE'),
+  ('Charan Bhaskar', 'charan.bhaskar@sjsu.edu', 'CMPE')
 ON DUPLICATE KEY UPDATE name = VALUES(name), department = VALUES(department);
 
 -- Companies
 INSERT INTO company (company_name, contact_name, contact_email) VALUES
-  ('Acme Robotics', 'Jordan Lee', 'jordan@acmerobotics.com'),
-  ('CloudWorks', 'Sam Patel', 'sam@cloudworks.io')
+  ('Texas Instruments', 'Jordan Lee', 'jordan.lee@TI.com'),
+  ('KLA', 'Sam Dong', 'sam.dong@KLA.com')
 ON DUPLICATE KEY UPDATE contact_name = VALUES(contact_name), contact_email = VALUES(contact_email);
 
 -- Students
 INSERT INTO student (student_id, first_name, last_name, email, major) VALUES
-  ('123456789', 'Chris', 'Nguyen', 'chris.nguyen@sjsu.edu', 'CMPE'),
-  ('234567890', 'Maria', 'Lopez', 'maria.lopez@sjsu.edu', 'SE'),
-  ('345678901', 'Ethan', 'Kim', 'ethan.kim@sjsu.edu', 'CMPE'),
-  ('456789012', 'Priya', 'Shah', 'priya.shah@sjsu.edu', 'CMPE'),
-  ('567890123', 'Noah', 'Garcia', 'noah.garcia@sjsu.edu', 'SE')
+  ('123456789', 'Nathan', 'Chuop', 'nathan.chuop@sjsu.edu', 'CMPE'),
+  ('234567890', 'Paul Brandon', 'Estigoy', 'paul.estigoy@sjsu.edu', 'SE'),
+  ('345678901', 'Raghav', 'Gautam', 'raghav.gautam@sjsu.edu', 'CMPE'),
+  ('456789012', 'Ernest', 'Ma', 'ernest.ma@sjsu.edu', 'CMPE'),
+  ('567890123', 'Colin', 'Oliva', 'colin.oliva@sjsu.edu', 'SE')
 ON DUPLICATE KEY UPDATE email = VALUES(email), major = VALUES(major);
 
 -- Teams (in Spring 2026, CMPE195A-01)
@@ -72,11 +74,11 @@ SELECT t.team_id, '456789012' FROM project_team t WHERE t.team_name='Team Beta';
 -- Assign advisors to teams (demonstrates capacity counting)
 INSERT IGNORE INTO advisor_assignment (advisor_id, team_id)
 SELECT
-  (SELECT advisor_id FROM advisor WHERE email='ada@sjsu.edu'),
+  (SELECT advisor_id FROM advisor WHERE email='paul.estigoy@sjsu.edu'),
   (SELECT team_id FROM project_team WHERE team_name='Team Alpha');
 
 INSERT IGNORE INTO advisor_assignment (advisor_id, team_id)
 SELECT
-  (SELECT advisor_id FROM advisor WHERE email='ada@sjsu.edu'),
+  (SELECT advisor_id FROM advisor WHERE email='ernest.ma@sjsu.edu'),
   (SELECT team_id FROM project_team WHERE team_name='Team Beta');
 

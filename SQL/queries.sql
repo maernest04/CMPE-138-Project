@@ -1,3 +1,5 @@
+-- SJSU CMPE 138 SPRING 2026 TEAM2
+
 -- Canonical queries (copy/paste into routers)
 USE senior_capstone_viewer;
 
