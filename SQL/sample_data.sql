@@ -82,3 +82,22 @@ SELECT
   (SELECT advisor_id FROM advisor WHERE email='ernest.ma@sjsu.edu'),
   (SELECT team_id FROM project_team WHERE team_name='Team Beta');
 
+-- Map admins to sections they manage (Task 2 & 4: admin access control)
+-- Ben Reed manages CMPE195A-01 (Spring 2026)
+INSERT IGNORE INTO course_section_admin (admin_id, section_id)
+SELECT
+  (SELECT advisor_id FROM advisor WHERE email='ben.reed@sjsu.edu'),
+  cs.section_id
+FROM course_section cs
+JOIN semester s ON s.semester_id = cs.semester_id
+WHERE s.year=2026 AND s.season='Spring' AND cs.course_code='CMPE195A' AND cs.section_number='01';
+
+-- Daphne Chen manages CMPE195B-01 (Spring 2026)
+INSERT IGNORE INTO course_section_admin (admin_id, section_id)
+SELECT
+  (SELECT advisor_id FROM advisor WHERE email='daphne.chen@sjsu.edu'),
+  cs.section_id
+FROM course_section cs
+JOIN semester s ON s.semester_id = cs.semester_id
+WHERE s.year=2026 AND s.season='Spring' AND cs.course_code='CMPE195B' AND cs.section_number='01';
+

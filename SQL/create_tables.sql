@@ -96,3 +96,18 @@ CREATE TABLE IF NOT EXISTS advisor_assignment (
   UNIQUE KEY uniq_advisor_team (advisor_id, team_id)
 ) ENGINE=InnoDB;
 
+-- 9) Admin user ↔ course section mapping (for Task 3 & 4: admin dashboard access control)
+CREATE TABLE IF NOT EXISTS course_section_admin (
+  course_section_admin_id INT AUTO_INCREMENT PRIMARY KEY,
+  admin_id                INT NOT NULL,
+  section_id              INT NOT NULL,
+  created_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_csa_admin
+    FOREIGN KEY (admin_id) REFERENCES advisor (advisor_id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT fk_csa_section
+    FOREIGN KEY (section_id) REFERENCES course_section (section_id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  UNIQUE KEY uniq_admin_section (admin_id, section_id)
+) ENGINE=InnoDB;
+

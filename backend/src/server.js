@@ -10,6 +10,7 @@ const morgan = require("morgan");
 const cors = require("cors");
 
 const { query } = require("./db");
+const adminRouter = require("./admin");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -60,6 +61,9 @@ app.get("/api/advisors", async (req, res) => {
     res.status(500).json({ error: String(err) });
   }
 });
+
+// Admin routes (Task 4)
+app.use("/api/admin", adminRouter);
 
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console
