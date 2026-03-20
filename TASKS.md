@@ -20,25 +20,22 @@
 **Owner:** _TBD_
 **Scope**
 - Own the **ER/EER diagram** and **data requirements**:
-  - Add `user_account` entity for login:
-    - Attributes: `user_id` (PK), `email` (unique), `password_hash`, `role` (`ADMIN` / `STUDENT`), timestamps as desired.
-    - Optional 1–1 relationship to `student` for student accounts.
-  - Add `course_section_admin` (or equivalent) relationship:
-    - Links an admin user to one or more `course_section` rows.
-- Maintain and evolve the **SQL schema**:
-  - Update `capstone.sql` (or an included SQL file) to:
-    - Create `user_account` table.
-    - Create `course_section_admin` table.
-    - Ensure FKs and unique constraints are correct.
-- Own **seed data** in `seed.sql`:
-  - Insert at least one admin user (with pre-hashed password) mapped to one or more sections.
-  - Insert a few student user accounts mapped to existing `student` rows.
+  - `user_account` entity: `user_id` (PK), `email` (unique), `password_hash`, `role` (`ADMIN` / `STUDENT` / `ADVISOR`), optional `student_id` (1–1 to student), optional `advisor_id` (1–1 to advisor).
+  - `course_section_admin` relationship: links an admin user to one or more `course_section` rows.
+  - `advisor` with `advisor_id` CHAR(9) (9-digit ID like student).
+- Maintain and evolve the **SQL schema** in `create_tables.sql`:
+  - Create `user_account` and `course_section_admin` tables; ensure FKs and unique constraints are correct.
+- Own **seed data** in `sample_data.sql`:
+  - Insert at least one admin user (pre-hashed password) mapped to sections.
+  - Insert advisor and student user accounts mapped to existing `advisor` and `student` rows.
+- Views: `advisor_capacity_v`, `team_overview_v`, `team_members_v`, `admin_sections_v`, `advisor_teams_v`.
+- Helper: `scripts/hash-password.js` for generating bcrypt hashes.
+
+
 **Deliverables**
-- Final ER/EER diagram including `user_account` and `course_section_admin`.
-- Updated `capstone.sql` and `seed.sql` that run cleanly on a fresh DB.
-- Short writeup (for final report) of:
-  - Table purposes, functional dependencies, and normal form (3NF/BCNF).
-  - Any denormalization decisions.
+- Final ER/EER diagram including `user_account`, `course_section_admin`, and all entities.
+- Updated `create_tables.sql`, `create_views.sql`, and `sample_data.sql` that run cleanly on a fresh DB.
+- Short writeup (for final report): table purposes, functional dependencies, normal form (3NF/BCNF), denormalization decisions.
 ---
 ## Task 3 – Auth & Infrastructure Owner (Login, Hashing, Session, Guards)
 **Owner:** _TBD_

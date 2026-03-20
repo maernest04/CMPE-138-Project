@@ -44,3 +44,25 @@ LEFT JOIN advisor_assignment aa ON aa.advisor_id = a.advisor_id
 WHERE a.advisor_id = ?
 GROUP BY a.advisor_id, a.max_teams;
 
+-- 6) Find user by email for login (Task 3)
+SELECT user_id, email, password_hash, role, student_id, advisor_id
+FROM user_account
+WHERE email = ?;
+
+-- 7) Sections managed by an admin (admin dashboard)
+SELECT section_id, course_code, section_number, year, season
+FROM admin_sections_v
+WHERE user_id = ?
+ORDER BY year DESC, season, course_code, section_number;
+
+-- 8) Teams assigned to an advisor (advisor dashboard)
+SELECT t.team_id, t.team_name, s.course_code, s.section_number, sem.year, sem.season,
+       c.company_name
+FROM advisor_assignment aa
+JOIN project_team t ON t.team_id = aa.team_id
+JOIN course_section s ON s.section_id = t.section_id
+JOIN semester sem ON sem.semester_id = s.semester_id
+LEFT JOIN company c ON c.company_id = t.company_id
+WHERE aa.advisor_id = ?
+ORDER BY sem.year DESC, sem.season, t.team_name;
+

@@ -9,13 +9,15 @@ This repository will be organized as the **DB-Application** root for the CMPE 13
 This application is a small database-backed system to help manage CMPE 195 senior capstone projects.
 It tracks semesters, course sections, students, advisors, companies, project teams, and team membership.
 
-There are two main actors:
+There are three main actors:
 
 - **Admin (course professor / TA)**: manages course sections, enrolls students into sections, creates and edits
-  project teams, and assigns advisors/industry partners to teams. Admins can see and manage all data for the
-  sections they own.
+project teams, and assigns advisors/industry partners to teams. Admins can see and manage all data for the
+sections they own. An admin may also be an advisor (linked via `advisor_id`).
+- **Advisor**: logs in to view their assigned teams and capacity. Cannot manage sections. Advisors are faculty
+with a 9-digit ID (like `111111111`).
 - **Student**: logs in, sees their own profile, section, team, advisor(s), and company, and can either create a
-  new team in their section (if they are not already on a team) or join an existing team in their section.
+new team in their section (if they are not already on a team) or join an existing team in their section.
 
 The core of the project is the **relational database schema** (SQL scripts under `SQL/`) plus a Node.js/Express
 application (backend) and a React frontend that demonstrate the required operations using explicit SQL queries
@@ -39,13 +41,14 @@ MySQL database (tables, views, stored procedures, triggers)
 ## High-level operations (by role)
 
 - **Admin**
-  - View semesters and course sections.
+  - View semesters and course sections (those in `course_section_admin`).
   - For a given section, view and manage enrolled students.
   - Create, edit, and delete project teams in a section.
   - Assign students to teams (or remove them) via team membership.
   - Assign advisors and (optionally) industry companies to teams.
   - View advisor capacity and current team load.
-
+- **Advisor**
+  - View assigned teams and capacity (via `advisor_teams_v`, `advisor_capacity_v`).
 - **Student**
   - Log in to the system and see their own information.
   - View their course section, team, teammates, advisor(s), and company.
@@ -65,10 +68,12 @@ CMPE138_TEAMn_SOURCES/
     frontend/                # React frontend source code
     SQL/
       create_tables.sql      # schema (tables, FKs, constraints)
-      create_views.sql       # views
+      create_views.sql       # views (advisor_capacity_v, team_overview_v, admin_sections_v, advisor_teams_v, etc.)
       triggers.sql           # triggers (if any)
       procedures.sql         # stored procedures (if any)
-      sample_data.sql        # sample data for demo/dev
+      sample_data.sql        # seed data (users, sections, teams, advisors)
+    scripts/
+      hash-password.js       # generates bcrypt hashes for sample_data.sql
     Log/
       app.log                # application log file(s)
 ```
@@ -79,96 +84,81 @@ This repository is treated as `DB-Application/` in the hierarchy above.
 
 ### 1) MySQL database (schema + app user)
 
-> Note: SQL files will be moved under `SQL/` and renamed as part of Task 2. The commands below assume they already live there.
+> Task 2 implemented the schema. SQL files live under `SQL/`.
 
 1. Log into MySQL as root (interactive):
-
-   ```bash
+  ```bash
    mysql -u root -p
-   ```
-
+  ```
 2. Create tables and load sample data by running the schema files.
-
-   - Option A (from your normal terminal):
-
-   ```bash
-   mysql -u root -p < SQL/create_tables.sql
-   mysql -u root -p < SQL/create_views.sql
-   mysql -u root -p < SQL/triggers.sql        # if any
-   mysql -u root -p < SQL/procedures.sql     # if any
-   mysql -u root -p < SQL/sample_data.sql
-   ```
-
-   - Option B (from inside the MySQL prompt):
-
-   ```sql
-   SOURCE SQL/create_tables.sql;
-   SOURCE SQL/create_views.sql;
-   SOURCE SQL/triggers.sql;
-   SOURCE SQL/procedures.sql;
-   SOURCE SQL/sample_data.sql;
-   ```
-
+  - Option A (from your normal terminal, run from project root):
+    ```bash
+    mysql -u root -p < SQL/reset.sql
+    mysql -u root -p < SQL/create_tables.sql
+    mysql -u root -p < SQL/create_views.sql
+    mysql -u root -p < SQL/triggers.sql
+    mysql -u root -p < SQL/procedures.sql
+    mysql -u root -p < SQL/sample_data.sql
+    ```
+  - Option B (from inside the MySQL prompt, after `cd` to project root):
+    ```sql
+    SOURCE SQL/reset.sql;
+    SOURCE SQL/create_tables.sql;
+    SOURCE SQL/create_views.sql;
+    SOURCE SQL/triggers.sql;
+    SOURCE SQL/procedures.sql;
+    SOURCE SQL/sample_data.sql;
+    ```
 3. Create a dedicated app user (recommended) and grant access:
-
-   ```sql
+  ```sql
    -- Universal dev credentials for the whole team (each teammate creates the same user locally)
    CREATE USER IF NOT EXISTS 'scv_user'@'localhost' IDENTIFIED BY 'scv_password';
    GRANT ALL PRIVILEGES ON senior_capstone_viewer.* TO 'scv_user'@'localhost';
    FLUSH PRIVILEGES;
-   ```
-
+  ```
 4. Quick verify (optional):
-
-   ```sql
-   USE senior_capstone_viewer;
-   SHOW TABLES;
-   ```
+  ```sql
+  USE senior_capstone_viewer;
+  SHOW TABLES;
+  SELECT * FROM user_account;
+  SELECT * FROM course_section_admin;
+  ```
 
 ### 2) Backend (Node.js + Express)
 
 > The backend will live under `backend/` and use raw SQL (no ORM) via `mysql2` or a similar driver.
 
 1. Install dependencies:
-
-   ```bash
+  ```bash
    cd backend
    npm install
-   ```
-
+  ```
 2. Configure environment variables for DB connection (for example):
-
-   ```bash
+  ```bash
    export DB_HOST=localhost
    export DB_PORT=3306
    export DB_USER=scv_user
    export DB_PASSWORD=scv_password
    export DB_NAME=senior_capstone_viewer
-   ```
-
+  ```
 3. Start the backend server (exact script name may vary once implemented):
-
-   ```bash
+  ```bash
    npm run dev
-   ```
+  ```
 
 ### 3) Frontend (React)
 
 > The frontend will live under `frontend/` and call the Express backend using JSON APIs.
 
 1. Install dependencies:
-
-   ```bash
+  ```bash
    cd frontend
    npm install
-   ```
-
+  ```
 2. Start the React dev server (exact script name may vary once implemented):
-
-   ```bash
+  ```bash
    npm run dev
-   ```
-
+  ```
 3. Open the printed URL in your browser (for example, `http://localhost:5173`) and make sure it can reach the backend API.
 
 ### Troubleshooting
@@ -190,3 +180,12 @@ The person owning Task 1 is responsible for keeping:
 - This `README.md` accurate as the project structure and setup evolve.
 - The miniworld, actors/roles, and operations in sync with how the system actually behaves.
 - The proposal text (see `PROPOSAL_NOTES.md`) aligned with the database design and implementation.
+
+## Responsibilities (Task 2 – Database & ERD owner)
+
+The person owning Task 2 is responsible for:
+
+- The ER/EER diagram and schema design (`user_account`, `course_section_admin`, `advisor`, etc.).
+- Maintaining `create_tables.sql`, `create_views.sql`, and `sample_data.sql` so they run cleanly on a fresh DB.
+- Table/column documentation: purposes, functional dependencies, normal form (3NF/BCNF), denormalization decisions.
+

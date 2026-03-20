@@ -35,9 +35,9 @@ CREATE TABLE IF NOT EXISTS student (
   UNIQUE KEY uniq_student_email (email)
 ) ENGINE=InnoDB;
 
--- 4) Advisors (faculty) with capacity = 2 teams by default
+-- 3b) Advisors (faculty) with 9-digit ID, capacity = 2 teams by default
 CREATE TABLE IF NOT EXISTS advisor (
-  advisor_id INT AUTO_INCREMENT PRIMARY KEY,
+  advisor_id CHAR(9) PRIMARY KEY,
   name       VARCHAR(100) NOT NULL,
   email      VARCHAR(100) NOT NULL,
   department VARCHAR(100),
@@ -45,7 +45,39 @@ CREATE TABLE IF NOT EXISTS advisor (
   UNIQUE KEY uniq_advisor_email (email)
 ) ENGINE=InnoDB;
 
--- 5) Industry collaborators / companies
+-- 3c) User accounts for login (ADMIN, STUDENT, or ADVISOR)
+CREATE TABLE IF NOT EXISTS user_account (
+  user_id       INT AUTO_INCREMENT PRIMARY KEY,
+  email         VARCHAR(100) NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  role          ENUM('ADMIN','STUDENT','ADVISOR') NOT NULL,
+  student_id    CHAR(9) NULL,
+  advisor_id    CHAR(9) NULL,
+  UNIQUE KEY uniq_user_email (email),
+  UNIQUE KEY uniq_user_student (student_id),
+  UNIQUE KEY uniq_user_advisor (advisor_id),
+  CONSTRAINT fk_user_student
+    FOREIGN KEY (student_id) REFERENCES student (student_id)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  CONSTRAINT fk_user_advisor
+    FOREIGN KEY (advisor_id) REFERENCES advisor (advisor_id)
+    ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+-- 3d) Admin ↔ course section (which sections an admin manages)
+CREATE TABLE IF NOT EXISTS course_section_admin (
+  user_id    INT NOT NULL,
+  section_id INT NOT NULL,
+  PRIMARY KEY (user_id, section_id),
+  CONSTRAINT fk_csa_user
+    FOREIGN KEY (user_id) REFERENCES user_account (user_id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT fk_csa_section
+    FOREIGN KEY (section_id) REFERENCES course_section (section_id)
+    ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 4) Industry collaborators / companies
 CREATE TABLE IF NOT EXISTS company (
   company_id    INT AUTO_INCREMENT PRIMARY KEY,
   company_name  VARCHAR(150) NOT NULL,
@@ -54,7 +86,7 @@ CREATE TABLE IF NOT EXISTS company (
   UNIQUE KEY uniq_company_name (company_name)
 ) ENGINE=InnoDB;
 
--- 6) Project teams, per section, optionally linked to a company
+-- 5) Project teams, per section, optionally linked to a company
 CREATE TABLE IF NOT EXISTS project_team (
   team_id    INT AUTO_INCREMENT PRIMARY KEY,
   team_name  VARCHAR(100) NOT NULL,
@@ -69,7 +101,7 @@ CREATE TABLE IF NOT EXISTS project_team (
   UNIQUE KEY uniq_team_name_per_section (team_name, section_id)
 ) ENGINE=InnoDB;
 
--- 7) Student ↔ team membership
+-- 6) Student ↔ team membership
 CREATE TABLE IF NOT EXISTS team_student (
   team_id    INT NOT NULL,
   student_id CHAR(9) NOT NULL,
@@ -82,10 +114,10 @@ CREATE TABLE IF NOT EXISTS team_student (
     ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
--- 8) Advisor ↔ team assignments
+-- 7) Advisor ↔ team assignments
 CREATE TABLE IF NOT EXISTS advisor_assignment (
   advisor_assignment_id INT AUTO_INCREMENT PRIMARY KEY,
-  advisor_id            INT NOT NULL,
+  advisor_id            CHAR(9) NOT NULL,
   team_id               INT NOT NULL,
   CONSTRAINT fk_aa_advisor
     FOREIGN KEY (advisor_id) REFERENCES advisor (advisor_id)

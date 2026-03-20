@@ -62,3 +62,39 @@ JOIN project_team t ON t.team_id = ts.team_id
 JOIN student st ON st.student_id = ts.student_id
 JOIN course_section s ON s.section_id = t.section_id
 JOIN semester sem ON sem.semester_id = s.semester_id;
+
+-- Sections managed by an admin (for admin dashboard)
+CREATE OR REPLACE VIEW admin_sections_v AS
+SELECT
+  ua.user_id,
+  ua.email AS admin_email,
+  cs.section_id,
+  cs.course_code,
+  cs.section_number,
+  sem.year,
+  sem.season
+FROM course_section_admin csa
+JOIN user_account ua ON ua.user_id = csa.user_id
+JOIN course_section cs ON cs.section_id = csa.section_id
+JOIN semester sem ON sem.semester_id = cs.semester_id
+WHERE ua.role = 'ADMIN';
+
+-- Teams assigned to advisors (for advisor dashboard)
+CREATE OR REPLACE VIEW advisor_teams_v AS
+SELECT
+  a.advisor_id,
+  a.name AS advisor_name,
+  t.team_id,
+  t.team_name,
+  s.section_id,
+  s.course_code,
+  s.section_number,
+  sem.year,
+  sem.season,
+  c.company_name
+FROM advisor a
+JOIN advisor_assignment aa ON aa.advisor_id = a.advisor_id
+JOIN project_team t ON t.team_id = aa.team_id
+JOIN course_section s ON s.section_id = t.section_id
+JOIN semester sem ON sem.semester_id = s.semester_id
+LEFT JOIN company c ON c.company_id = t.company_id;
