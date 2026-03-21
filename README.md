@@ -133,7 +133,10 @@ This repository is treated as `DB-Application/` in the hierarchy above.
    cd backend
    npm install
   ```
-2. Configure environment variables for DB connection (for example):
+2. Configure the database connection using a **`.env`** file (recommended) or shell exports.
+   - The backend loads **`.env`**. Node does **not** read `.env` automatically; the server uses `dotenv` for this.
+   - Set **`DB_PASSWORD`** to the same password your MySQL user uses. If it is wrong or empty while MySQL expects a password, you will see: `Access denied ... (using password: NO)`.
+   - Copy `backend/.env.example` to `backend/.env` or add variables to the project root `.env`.
   ```bash
    export DB_HOST=localhost
    export DB_PORT=3306
@@ -161,8 +164,28 @@ This repository is treated as `DB-Application/` in the hierarchy above.
   ```
 3. Open the printed URL in your browser (for example, `http://localhost:5173`) and make sure it can reach the backend API.
 
+**Student login:** After the DB is loaded with `sample_data.sql`, use the student emails from that file with passwords `student1` … `student5`. If you add `section_student` to an existing database, run `SQL/alter_section_student.sql` then re-run `sample_data.sql` for enrollment rows.
+
 ### Troubleshooting
 
+- **Unknown database `senior_capstone_viewer`**:
+  - The app is connecting to MySQL, but that database does not exist on **that** server yet. Run the SQL scripts in order (see `SQL/FIRST_TIME_SETUP.md`). `create_tables.sql` includes `CREATE DATABASE IF NOT EXISTS senior_capstone_viewer`.
+  - If you use MySQL Workbench on your machine but `DB_HOST` is `localhost`, you’re on the right track—just load the scripts into the same instance.
+    - Run in this order:
+  1. `SQL/create_tables.sql` — includes `CREATE DATABASE IF NOT EXISTS senior_capstone_viewer`
+  2. `SQL/create_views.sql`
+  3. `SQL/triggers.sql`
+  4. `SQL/procedures.sql`
+  5. `SQL/sample_data.sql`
+      - How to run these files:
+        - MySQL Workbench: connect → File → Open SQL Script → run each file in that order.
+        - OR Command line (from the project folder), if mysql is on your PATH:
+          - cd C:\Users\username\path\to\root\CMPE-138-Project
+          - mysql -u root -p < SQL\create_tables.sql
+          - mysql -u root -p < SQL\create_views.sql
+          - mysql -u root -p < SQL\triggers.sql
+          - mysql -u root -p < SQL\procedures.sql
+          - mysql -u root -p < SQL\sample_data.sql
 - **Database access denied**:
   - Check that the MySQL user/password in your environment variables match the user you created.
   - Verify that the DB name (`senior_capstone_viewer`) exists and that the user has privileges on it.
