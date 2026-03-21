@@ -66,3 +66,22 @@ LEFT JOIN company c ON c.company_id = t.company_id
 WHERE aa.advisor_id = ?
 ORDER BY sem.year DESC, sem.season, t.team_name;
 
+-- 9) Sections a student is enrolled in
+SELECT ss.section_id, cs.course_code, cs.section_number, sem.year, sem.season
+FROM section_student ss
+JOIN course_section cs ON cs.section_id = ss.section_id
+JOIN semester sem ON sem.semester_id = cs.semester_id
+WHERE ss.student_id = ?
+ORDER BY sem.year DESC, sem.season, cs.course_code, cs.section_number;
+
+-- 10) Student dashboard — teams + section + company
+SELECT t.team_id, t.team_name, t.section_id, t.company_id, c.company_name,
+       cs.course_code, cs.section_number, sem.year, sem.season
+FROM team_student ts
+JOIN project_team t ON t.team_id = ts.team_id
+JOIN course_section cs ON cs.section_id = t.section_id
+JOIN semester sem ON sem.semester_id = cs.semester_id
+LEFT JOIN company c ON c.company_id = t.company_id
+WHERE ts.student_id = ?
+ORDER BY sem.year DESC, sem.season, cs.course_code, t.team_name;
+

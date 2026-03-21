@@ -53,6 +53,18 @@ INSERT INTO user_account (email, password_hash, role, student_id, advisor_id) VA
   ('colin.oliva@sjsu.edu', '$2b$10$dohFVwWSRTvbkGtIbvVpFuiV.fOTmFYLf4upXuZDT9lO.TUgKUC4K', 'STUDENT', '567890123', NULL)
 AS new ON DUPLICATE KEY UPDATE password_hash = new.password_hash, role = new.role, student_id = new.student_id, advisor_id = new.advisor_id;
 
+-- Enroll sample students in CMPE195A-01 (Spring 2026) — required for student create/join team in that section
+INSERT IGNORE INTO section_student (section_id, student_id)
+SELECT cs.section_id, st.student_id
+FROM course_section cs
+JOIN semester sem ON sem.semester_id = cs.semester_id
+CROSS JOIN student st
+WHERE sem.year = 2026 AND sem.season = 'Spring'
+  AND cs.course_code = 'CMPE195A' AND cs.section_number = '01'
+  AND st.student_id IN (
+    '123456789', '234567890', '345678901', '456789012', '567890123'
+  );
+
 -- Admin manages CMPE195A-01 and CMPE195B-01 (Spring 2026)
 INSERT IGNORE INTO course_section_admin (user_id, section_id)
 SELECT ua.user_id, cs.section_id

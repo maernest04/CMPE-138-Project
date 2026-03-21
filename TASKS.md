@@ -85,7 +85,7 @@
 - An admin demo flow for presentation (e.g., “log in as admin → choose section → add student → create team → assign advisor/company → verify DB changes”).
 ---
 ## Task 5 – Student Features & Logging Owner (Student UI + Logs)
-**Owner:** _TBD_
+**Owner:** Colin Oliva
 **Scope**
 - Create **student router** and templates:
   - Student dashboard:

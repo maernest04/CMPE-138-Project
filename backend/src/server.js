@@ -3,22 +3,36 @@
 // React frontend -> Express JSON API -> MySQL (no ORM)
 
 const path = require("path");
+
+// Load .env before ./db (MySQL pool). Tries backend/.env then repo-root .env (root overrides).
+require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
+require("dotenv").config({ path: path.join(__dirname, "..", "..", ".env"), override: true });
+
+if (process.env.NODE_ENV !== "production") {
+  const hasPw = Boolean(process.env.DB_PASSWORD && String(process.env.DB_PASSWORD).length > 0);
+  // eslint-disable-next-line no-console
+  console.log(
+    `[db] ${process.env.DB_USER || "root"}@${process.env.DB_HOST || "localhost"}/${
+      process.env.DB_NAME || "senior_capstone_viewer"
+    } — password ${hasPw ? "set" : "EMPTY (MySQL may require DB_PASSWORD in .env)"}`
+  );
+}
+
 const fs = require("fs");
 
 const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 
 const { query } = require("./db");
+const { parseSession } = require("./middleware/parseSession");
+const authRoutes = require("./routes/auth");
+const studentRoutes = require("./routes/student");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-
-// Logging to Log/app.log
 const logDir = path.join(__dirname, "..", "..", "Log");
 const logFile = path.join(logDir, "app.log");
 
@@ -28,6 +42,21 @@ if (!fs.existsSync(logDir)) {
 
 const accessLogStream = fs.createWriteStream(logFile, { flags: "a" });
 app.use(morgan("combined", { stream: accessLogStream }));
+
+const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:5173";
+app.use(
+  cors({
+    origin: corsOrigin,
+    credentials: true
+  })
+);
+
+app.use(cookieParser());
+app.use(express.json());
+app.use(parseSession);
+
+app.use("/api/auth", authRoutes);
+app.use("/api/student", studentRoutes);
 
 // Health check
 app.get("/api/health", async (req, res) => {
@@ -65,4 +94,3 @@ app.listen(PORT, () => {
   // eslint-disable-next-line no-console
   console.log(`Backend listening on http://localhost:${PORT}`);
 });
-

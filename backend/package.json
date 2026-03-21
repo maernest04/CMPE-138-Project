@@ -7,7 +7,9 @@
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
     "express": "^4.19.0",
     "morgan": "^1.10.0",
     "mysql2": "^3.9.2"
