@@ -322,4 +322,80 @@ router.post("/teams/join", async (req, res) => {
   }
 });
 
+/* Leave a team in student's own section. Body: { teamId } */
+router.post("/teams/leave", async (req, res) => {
+  const studentId = req.studentId;
+  const teamId = req.body && Number(req.body.teamId);
+  if (!Number.isFinite(teamId)) {
+    return res.status(400).json({ error: "teamId required" });
+  }
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    const [teamRows] = await conn.execute(
+      `SELECT team_id, team_name, section_id FROM project_team WHERE team_id = ? LIMIT 1`,
+      [teamId]
+    );
+    const team = teamRows[0];
+    if (!team) {
+      await conn.rollback();
+      conn.release();
+      return res.status(404).json({ error: "Team not found" });
+    }
+
+    const [memberRows] = await conn.execute(
+      `SELECT 1 FROM team_student WHERE team_id = ? AND student_id = ? LIMIT 1`,
+      [teamId, studentId]
+    );
+    if (!memberRows.length) {
+      await conn.rollback();
+      conn.release();
+      return res.status(400).json({ error: "You are not a member of this team" });
+    }
+
+    await conn.execute(`DELETE FROM team_student WHERE team_id = ? AND student_id = ?`, [
+      teamId,
+      studentId
+    ]);
+
+    const [cntRows] = await conn.execute(`SELECT COUNT(*) AS n FROM team_student WHERE team_id = ?`, [
+      teamId
+    ]);
+    const remainingMembers = Number(cntRows[0].n);
+    let deletedTeam = false;
+
+    // Cleanup: remove empty team shell once the last member leaves.
+    if (remainingMembers === 0) {
+      await conn.execute(`DELETE FROM project_team WHERE team_id = ?`, [teamId]);
+      deletedTeam = true;
+    }
+
+    await conn.commit();
+    conn.release();
+    conn = null;
+
+    logEvent("student", "left team", {
+      studentId,
+      teamId,
+      teamName: team.team_name,
+      sectionId: team.section_id,
+      deletedTeam
+    });
+
+    return res.json({ ok: true, teamId, teamName: team.team_name, deletedTeam });
+  } catch (err) {
+    if (conn) {
+      try {
+        await conn.rollback();
+      } catch (_) {}
+      conn.release();
+    }
+    logWarn("student", "leave team error", { studentId, teamId, error: String(err) });
+    return res.status(500).json({ error: String(err) });
+  }
+});
+
 module.exports = router;

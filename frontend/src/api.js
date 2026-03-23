@@ -80,3 +80,13 @@ export async function joinTeam(teamId) {
   });
   return handle(res);
 }
+
+export async function leaveTeam(teamId) {
+  const res = await fetch("/api/student/teams/leave", {
+    method: "POST",
+    credentials: "include",
+    headers: jsonHeaders,
+    body: JSON.stringify({ teamId })
+  });
+  return handle(res);
+}
