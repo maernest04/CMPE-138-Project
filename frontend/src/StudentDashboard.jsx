@@ -6,6 +6,7 @@ import {
   getTeamsForJoin,
   createTeam,
   joinTeam,
+  leaveTeam,
   logout
 } from "./api";
 
@@ -33,11 +34,28 @@ export function StudentDashboard({ user, onLogout }) {
     const [d, e] = await Promise.all([getStudentDashboard(), getStudentEnrollments()]);
     setDash(d);
     setEnrollments(e);
-    if (!createSectionId && e.length === 1) {
-      setCreateSectionId(String(e[0].sectionId));
+    const availableSections = e.filter((x) => !x.onTeamInSection);
+
+    if (!createSectionId && availableSections.length === 1) {
+      setCreateSectionId(String(availableSections[0].sectionId));
     }
-    if (!joinSectionId && e.length === 1) {
-      setJoinSectionId(e[0].sectionId);
+
+    // Keep existing join section only if still eligible; otherwise choose first eligible or clear.
+    const keepJoinSection =
+      joinSectionId && availableSections.some((s) => s.sectionId === joinSectionId);
+    const nextJoinSectionId = keepJoinSection
+      ? joinSectionId
+      : availableSections.length
+      ? availableSections[0].sectionId
+      : null;
+
+    setJoinSectionId(nextJoinSectionId);
+
+    // Important: refresh joinable team list even when section doesn't change.
+    if (nextJoinSectionId) {
+      await loadJoinTeams(nextJoinSectionId);
+    } else {
+      setJoinTeams([]);
     }
   }
 
@@ -93,6 +111,26 @@ export function StudentDashboard({ user, onLogout }) {
     try {
       await joinTeam(teamId);
       setMessage("Joined team.");
+      await refresh();
+    } catch (err) {
+      setError(err.message || String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onLeave(teamId, teamName) {
+    const ok = window.confirm(
+      `Leave ${teamName}? If you are the last member, this team will be deleted.`
+    );
+    if (!ok) return;
+
+    setMessage(null);
+    setError(null);
+    setBusy(true);
+    try {
+      await leaveTeam(teamId);
+      setMessage("Left team.");
       await refresh();
     } catch (err) {
       setError(err.message || String(err));
@@ -164,6 +202,9 @@ export function StudentDashboard({ user, onLogout }) {
                 </li>
               ))}
             </ul>
+            <button type="button" disabled={busy} onClick={() => onLeave(t.teamId, t.teamName)}>
+              Leave team
+            </button>
           </article>
         ))
       )}

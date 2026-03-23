@@ -14,12 +14,12 @@ This document describes what was implemented for **Task 5** while other tasks ev
 
 | Path | Purpose |
 |------|--------|
-| `logger.js` | Appends **business events** to `Log/events.log` (login, logout, create/join team). |
+| `logger.js` | Appends **business events** to `Log/events.log` (login, logout, create/join/leave team). |
 | `auth/session.js` | HMAC-signed session payload in cookie `scv_session`. |
 | `middleware/parseSession.js` | Attaches `req.sessionUser` from cookie. |
 | `middleware/requireStudent.js` | **401** if not a student; sets `req.studentId` from session only. |
 | `routes/auth.js` | `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`. |
-| `routes/student.js` | `GET /api/student/dashboard`, `GET /api/student/enrollments`, `GET /api/student/sections/:id/teams-for-join`, `POST /api/student/teams/create`, `POST /api/student/teams/join`. |
+| `routes/student.js` | `GET /api/student/dashboard`, `GET /api/student/enrollments`, `GET /api/student/sections/:id/teams-for-join`, `POST /api/student/teams/create`, `POST /api/student/teams/join`, `POST /api/student/teams/leave`. |
 | `server.js` | CORS with **credentials**, `cookie-parser`, mounts routers. |
 
 HTTP access logging remains in **`Log/app.log`** (morgan).
@@ -30,7 +30,7 @@ HTTP access logging remains in **`Log/app.log`** (morgan).
 |------|--------|
 | `api.js` | `fetch` helpers with `credentials: "include"`. |
 | `LoginForm.jsx` | Student login (rejects non-student accounts). |
-| `StudentDashboard.jsx` | Dashboard, create team, join team. |
+| `StudentDashboard.jsx` | Dashboard, create team, join team, leave team. |
 | `App.jsx` | Session bootstrap via `/api/auth/me`. |
 
 ### Sample login passwords
@@ -129,7 +129,7 @@ Open **http://localhost:5173** (Vite proxies `/api` to the backend).
 | backend/src/middleware/parseSession.js | **New**.
 | backend/src/middleware/requireStudent.js | **New**.
 | backend/src/routes/auth.js | **New** – login / logout / me.
-| backend/src/routes/student.js | **New** – dashboard, enrollments, teams-for-join, create, join.
+| backend/src/routes/student.js | **New** – dashboard, enrollments, teams-for-join, create, join, leave.
 | frontend/src/api.js | **New** – API helpers + credentials: "include".
 | frontend/src/LoginForm.jsx | **New**.
 | frontend/src/StudentDashboard.jsx | **New**.
