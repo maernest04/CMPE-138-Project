@@ -85,3 +85,54 @@ LEFT JOIN company c ON c.company_id = t.company_id
 WHERE ts.student_id = ?
 ORDER BY sem.year DESC, sem.season, cs.course_code, t.team_name;
 
+-- =========================
+-- Task 4 admin operations
+-- =========================
+
+-- A1) Admin sections (dashboard)
+-- Express uses admin_sections_v for GET /api/admin/sections (equivalent join logic).
+SELECT section_id, course_code, section_number, year, season
+FROM admin_sections_v
+WHERE user_id = ?
+ORDER BY year DESC, season, course_code, section_number;
+
+-- A2) Students in a managed section
+SELECT st.student_id, st.first_name, st.last_name, st.email, st.major
+FROM section_student ss
+JOIN student st ON st.student_id = ss.student_id
+WHERE ss.section_id = ?
+ORDER BY st.last_name, st.first_name;
+
+-- A3) Enroll an existing student into section
+INSERT INTO section_student (section_id, student_id) VALUES (?, ?);
+
+-- A4) Create new student + enroll into section
+INSERT INTO student (student_id, first_name, last_name, email, major)
+VALUES (?, ?, ?, ?, ?);
+INSERT INTO section_student (section_id, student_id) VALUES (?, ?);
+
+-- A5) Create/edit/delete teams in section
+INSERT INTO project_team (team_name, section_id, company_id) VALUES (?, ?, NULL);
+UPDATE project_team SET team_name = ?, company_id = ? WHERE team_id = ?;
+DELETE FROM project_team WHERE team_id = ?;
+
+-- A6) Team membership management
+INSERT INTO team_student (team_id, student_id) VALUES (?, ?);
+DELETE FROM team_student WHERE team_id = ? AND student_id = ?;
+
+-- A7) Advisor assignment management
+INSERT INTO advisor_assignment (advisor_id, team_id) VALUES (?, ?);
+DELETE FROM advisor_assignment WHERE team_id = ? AND advisor_id = ?;
+
+-- A8) Admin API business rules (enforced in Express, same checks in app code)
+-- Before adding a student to a team:
+--   - Student must be in section_student for that team's section_id
+--   - Student must not already be on another team in the same section (one team per student per section)
+--   - COUNT(team_student) for that team_id must be < MAX_TEAM_MEMBERS (env, default 5)
+-- Before assigning an advisor:
+--   - advisor_id must exist in advisor
+--   - COUNT(advisor_assignment) for that advisor_id must be < advisor.max_teams
+-- Before setting project_team.company_id:
+--   - company_id IS NULL or must exist in company
+-- Team rename: trimmed team_name must be non-empty; unique per (team_name, section_id)
+

@@ -18,6 +18,11 @@ async function handle(res) {
   return data;
 }
 
+export async function getConfig() {
+  const res = await fetch("/api/config");
+  return handle(res);
+}
+
 export async function getMe() {
   const res = await fetch("/api/auth/me", { credentials: "include" });
   if (res.status === 401) {
@@ -88,5 +93,104 @@ export async function leaveTeam(teamId) {
     headers: jsonHeaders,
     body: JSON.stringify({ teamId })
   });
+  return handle(res);
+}
+
+export async function getAdminSections() {
+  const res = await fetch("/api/admin/sections", { credentials: "include" });
+  return handle(res);
+}
+
+export async function getAdminSectionStudents(sectionId) {
+  const res = await fetch(`/api/admin/sections/${sectionId}/students`, { credentials: "include" });
+  return handle(res);
+}
+
+export async function addSectionStudent(sectionId, payload) {
+  const res = await fetch(`/api/admin/sections/${sectionId}/students`, {
+    method: "POST",
+    credentials: "include",
+    headers: jsonHeaders,
+    body: JSON.stringify(payload)
+  });
+  return handle(res);
+}
+
+export async function getAdminSectionTeams(sectionId) {
+  const res = await fetch(`/api/admin/sections/${sectionId}/teams`, { credentials: "include" });
+  return handle(res);
+}
+
+export async function createAdminTeam(sectionId, teamName) {
+  const res = await fetch(`/api/admin/sections/${sectionId}/teams`, {
+    method: "POST",
+    credentials: "include",
+    headers: jsonHeaders,
+    body: JSON.stringify({ teamName })
+  });
+  return handle(res);
+}
+
+export async function updateAdminTeam(teamId, payload) {
+  const res = await fetch(`/api/admin/teams/${teamId}`, {
+    method: "PUT",
+    credentials: "include",
+    headers: jsonHeaders,
+    body: JSON.stringify(payload)
+  });
+  return handle(res);
+}
+
+export async function deleteAdminTeam(teamId) {
+  const res = await fetch(`/api/admin/teams/${teamId}`, {
+    method: "DELETE",
+    credentials: "include"
+  });
+  return handle(res);
+}
+
+export async function addTeamMember(teamId, studentId) {
+  const res = await fetch(`/api/admin/teams/${teamId}/members`, {
+    method: "POST",
+    credentials: "include",
+    headers: jsonHeaders,
+    body: JSON.stringify({ studentId })
+  });
+  return handle(res);
+}
+
+export async function removeTeamMember(teamId, studentId) {
+  const res = await fetch(`/api/admin/teams/${teamId}/members/${studentId}`, {
+    method: "DELETE",
+    credentials: "include"
+  });
+  return handle(res);
+}
+
+export async function getAdminAdvisors() {
+  const res = await fetch("/api/admin/advisors", { credentials: "include" });
+  return handle(res);
+}
+
+export async function addAdvisorToTeam(teamId, advisorId) {
+  const res = await fetch(`/api/admin/teams/${teamId}/advisors`, {
+    method: "POST",
+    credentials: "include",
+    headers: jsonHeaders,
+    body: JSON.stringify({ advisorId })
+  });
+  return handle(res);
+}
+
+export async function removeAdvisorFromTeam(teamId, advisorId) {
+  const res = await fetch(`/api/admin/teams/${teamId}/advisors/${advisorId}`, {
+    method: "DELETE",
+    credentials: "include"
+  });
+  return handle(res);
+}
+
+export async function getAdminCompanies() {
+  const res = await fetch("/api/admin/companies", { credentials: "include" });
   return handle(res);
 }

@@ -2,12 +2,13 @@
 
 const express = require("express");
 const { pool, query } = require("../db");
+const appConfig = require("../appConfig");
 const { requireStudent } = require("../middleware/requireStudent");
 const { logEvent, logWarn } = require("../logger");
 
 const router = express.Router();
 
-const MAX_TEAM_MEMBERS = Number(process.env.MAX_TEAM_MEMBERS || 5);
+const MAX_TEAM_MEMBERS = appConfig.getMaxTeamMembers();
 
 router.use(requireStudent);
 

@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "node src/server.js"
+    "dev": "node src/server.js",
+    "test:admin": "node scripts/test-admin-api.mjs"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
