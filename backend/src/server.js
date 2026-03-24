@@ -26,9 +26,11 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 
 const { query } = require("./db");
+const appConfig = require("./appConfig");
 const { parseSession } = require("./middleware/parseSession");
 const authRoutes = require("./routes/auth");
 const studentRoutes = require("./routes/student");
+const adminRoutes = require("./routes/admin");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -55,8 +57,17 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(parseSession);
 
+// Public config for frontend (team size cap, field max lengths)
+app.get("/api/config", (_req, res) => {
+  res.json({
+    maxTeamMembers: appConfig.getMaxTeamMembers(),
+    fieldLimits: appConfig.LIMITS
+  });
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/student", studentRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Health check
 app.get("/api/health", async (req, res) => {

@@ -57,6 +57,8 @@ MySQL database (tables, views, stored procedures, triggers)
 
 Login, password hashing, and role-based behavior will be implemented in the **Express backend**.
 
+**Task 4 (admin):** see **`TASK4_UPDATE.md`** for API list, how to run/test, demo script, SQL checks, and security notes. Public **`GET /api/config`** exposes `maxTeamMembers` and field length limits. Run **`cd backend && npm run test:admin`** with the server up (steps in that doc).
+
 ## Project layout
 
 At the end of the project, the folder structure under this repository will match the required CMPE 138 layout:
