@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { getMe } from "./api";
 import { LoginForm } from "./LoginForm";
 import { StudentDashboard } from "./StudentDashboard";
+import { AdminDashboard } from "./AdminDashboard";
 
 export default function App() {
   const [user, setUser] = useState(undefined);
@@ -12,7 +13,7 @@ export default function App() {
   useEffect(() => {
     getMe()
       .then((data) => {
-        if (data.user && data.user.role === "STUDENT") {
+        if (data.user) {
           setUser(data.user);
         } else {
           setUser(null);
@@ -37,17 +38,19 @@ export default function App() {
   return (
     <main style={{ fontFamily: "system-ui, sans-serif", padding: "2rem", maxWidth: "900px" }}>
       <h1 style={{ marginTop: 0 }}>Senior Capstone Viewer</h1>
-      <p style={{ color: "#555" }}>
-        Task 5 student flows · Express API + MySQL · see <code>TASK5_UPDATE.md</code>
-      </p>
+      <p style={{ color: "#555" }}>Role-based dashboards · Express API + MySQL</p>
 
       <section style={{ marginBottom: "2rem", fontSize: "0.9rem" }}>
         <strong>API health:</strong>{" "}
         {health ? <code>{JSON.stringify(health)}</code> : "…"}
       </section>
 
-      {user ? (
+      {user && user.role === "STUDENT" ? (
         <StudentDashboard user={user} onLogout={() => setUser(null)} />
+      ) : user && user.role === "ADMIN" ? (
+        <AdminDashboard user={user} onLogout={() => setUser(null)} />
+      ) : user ? (
+        <p>Logged in as {user.role}. This UI currently supports STUDENT and ADMIN.</p>
       ) : (
         <LoginForm
           onLoggedIn={(u) =>
