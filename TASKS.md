@@ -1,6 +1,8 @@
 ## Task 1 – Proposal, Miniworld, and Documentation Owner
-**Owner:** _TBD_
+
+**Owner:** Ernest Ma
 **Scope**
+
 - Maintain the **project proposal** so it matches what we actually build:
   - Miniworld: “Senior Capstone Viewer for CMPE 195 capstone projects.”
   - Actors: `Admin (course professor/TA)` and `Student`.
@@ -11,14 +13,18 @@
   - How to set up the DB and run the app.
   - How to log in as admin vs student (which seeded accounts exist).
   - Which features are available to each role.
-**Deliverables**
+    **Deliverables**
 - Clean proposal approved by the instructor (with mandatory sections).
 - Up-to-date `README.md` that any teammate/grader can follow.
 - Draft text for final report sections: miniworld, actors/roles, operations, scenarios.
+
 ---
+
 ## Task 2 – Database & ERD Owner (Schema + Data Requirements)
-**Owner:** _TBD_
+
+**Owner:** Nathan Choup
 **Scope**
+
 - Own the **ER/EER diagram** and **data requirements**:
   - `user_account` entity: `user_id` (PK), `email` (unique), `password_hash`, `role` (`ADMIN` / `STUDENT` / `ADVISOR`), optional `student_id` (1–1 to student), optional `advisor_id` (1–1 to advisor).
   - `course_section_admin` relationship: links an admin user to one or more `course_section` rows.
@@ -31,15 +37,19 @@
 - Views: `advisor_capacity_v`, `team_overview_v`, `team_members_v`, `admin_sections_v`, `advisor_teams_v`.
 - Helper: `scripts/hash-password.js` for generating bcrypt hashes.
 
-
 **Deliverables**
+
 - Final ER/EER diagram including `user_account`, `course_section_admin`, and all entities.
 - Updated `create_tables.sql`, `create_views.sql`, and `sample_data.sql` that run cleanly on a fresh DB.
 - Short writeup (for final report): table purposes, functional dependencies, normal form (3NF/BCNF), denormalization decisions.
+
 ---
+
 ## Task 3 – Auth & Infrastructure Owner (Login, Hashing, Session, Guards)
+
 **Owner:** _TBD_
 **Scope**
+
 - Implement **authentication** in FastAPI (no ORM):
   - Use `passlib` (bcrypt) or similar for `password_hash`.
   - Functions to hash passwords and verify passwords.
@@ -58,14 +68,18 @@
 - Integrate into `app/main.py`:
   - Include `auth` router.
   - Make `/` behave differently depending on login state (redirect to admin or student dashboard or show welcome page).
-**Deliverables**
+    **Deliverables**
 - Working login/logout with hashed passwords.
 - Shared dependencies `require_admin` and `require_student` used by feature routers.
 - Example code snippets and explanation for the final report (password hashing, login flow).
+
 ---
+
 ## Task 4 – Admin Features Owner (Professor-Side UI + SQL)
-**Owner:** _TBD_
+
+**Owner:** Raghav Gautam
 **Scope**
+
 - Create **admin router** and templates:
   - Admin dashboard:
     - Show the course sections this admin manages (via `course_section_admin`).
@@ -79,14 +93,18 @@
 - Enforce **admin-only access**:
   - Use `require_admin` from Task 3.
   - Filter all admin data by the sections associated with the current admin.
-**Deliverables**
+    **Deliverables**
 - Fully working admin screens and routes backed by explicit SQL queries.
 - Canonical SQL examples added to `queries.sql` (for key admin operations).
 - An admin demo flow for presentation (e.g., “log in as admin → choose section → add student → create team → assign advisor/company → verify DB changes”).
+
 ---
+
 ## Task 5 – Student Features & Logging Owner (Student UI + Logs)
+
 **Owner:** Colin Oliva
 **Scope**
+
 - Create **student router** and templates:
   - Student dashboard:
     - Show the logged-in student’s section, team (if any), teammates, advisor(s), and company.
@@ -102,16 +120,16 @@
   - Always get `student_id` from the logged-in user, never from query/path parameters.
 - Implement **logging**:
   - Configure Python `logging` to write to text files under `Log/`.
-  - Log at least:
-    - Login attempts and results (coordinating with Task 3).
-    - Student create/join team actions.
-    - Optionally, admin operations (coordinate with Task 4).
-**Deliverables**
+  - Log at least: - Login attempts and results (coordinating with Task 3). - Student create/join team actions. - Optionally, admin operations (coordinate with Task 4).
+    **Deliverables**
 - Working student dashboard and team create/join flows.
 - Log files showing real operations (for submission and demo).
 - A student demo flow for presentation (e.g., “log in as student → create/join team → see updated team/advisor info”).
+
 ---
+
 ## Coordination Notes
+
 - **Schema & auth contracts**
   - Task 2 defines final table and column names for `user_account` and `course_section_admin` and shares them with everyone.
   - Task 3 defines how cookies/sessions and `require_admin`/`require_student` work and shares simple usage examples.
