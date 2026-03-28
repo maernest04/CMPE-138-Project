@@ -47,7 +47,7 @@
 
 ## Task 3 – Auth & Infrastructure Owner (Login, Hashing, Session, Guards)
 
-**Owner:** _TBD_
+**Owner:** Brandon Estigoy
 **Scope**
 
 - Implement **authentication** in FastAPI (no ORM):
