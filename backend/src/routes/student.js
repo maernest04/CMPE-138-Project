@@ -49,15 +49,20 @@ router.get("/dashboard", async (req, res) => {
     const studentId = req.studentId;
 
     const teams = await query(
-      `SELECT t.team_id, t.team_name, t.section_id, t.company_id, c.company_name,
-              cs.course_code, cs.section_number, sem.year, sem.season
-       FROM team_student ts
-       JOIN project_team t ON t.team_id = ts.team_id
-       JOIN course_section cs ON cs.section_id = t.section_id
-       JOIN semester sem ON sem.semester_id = cs.semester_id
-       LEFT JOIN company c ON c.company_id = t.company_id
-       WHERE ts.student_id = ?
-       ORDER BY sem.year DESC, sem.season, cs.course_code, t.team_name`,
+      `SELECT DISTINCT
+          team_id,
+          team_name,
+          section_id,
+          company_id,
+          company_name,
+          course_code,
+          section_number,
+          year,
+          season
+      FROM student_dashboard_view
+      WHERE student_id = ?
+        AND team_id IS NOT NULL
+      ORDER BY year DESC, season, course_code, section_number, team_name`,
       [studentId]
     );
 

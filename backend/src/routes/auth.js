@@ -1,8 +1,8 @@
 // Minimal login/logout functionalities
 
 const express = require("express");
-const bcrypt = require("bcrypt");
 const { query } = require("../db");
+const { hashPassword, verifyPassword } = require("../auth/password");
 const { sign, COOKIE_NAME } = require("../auth/session");
 const { logEvent, logWarn } = require("../logger");
 
@@ -36,7 +36,7 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    const ok = await bcrypt.compare(password, user.password_hash);
+    const ok = await verifyPassword(password, user.password_hash);
     if (!ok) {
       logEvent("auth", "login failed: bad password", { email, user_id: user.user_id });
       return res.status(401).json({ error: "Invalid email or password" });

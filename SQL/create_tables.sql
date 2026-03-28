@@ -141,3 +141,44 @@ CREATE TABLE IF NOT EXISTS advisor_assignment (
   UNIQUE KEY uniq_advisor_team (advisor_id, team_id)
 ) ENGINE=InnoDB;
 
+CREATE INDEX idx_project_team_section_id ON project_team(section_id);
+CREATE INDEX idx_team_student_student_id ON team_student(student_id);
+CREATE INDEX idx_section_student_student_id ON section_student(student_id);
+CREATE INDEX idx_advisor_assignment_advisor_id ON advisor_assignment(advisor_id);
+
+CREATE OR REPLACE VIEW student_dashboard_view AS
+SELECT
+    s.student_id,
+    s.first_name,
+    s.last_name,
+    s.email,
+    s.major,
+    cs.section_id,
+    cs.course_code,
+    cs.section_number,
+    sem.year,
+    sem.season,
+    pt.team_id,
+    pt.team_name,
+    c.company_id,
+    c.company_name,
+    a.advisor_id,
+    a.name AS advisor_name,
+    a.email AS advisor_email
+FROM student s
+LEFT JOIN section_student ss
+    ON s.student_id = ss.student_id
+LEFT JOIN course_section cs
+    ON ss.section_id = cs.section_id
+LEFT JOIN semester sem
+    ON cs.semester_id = sem.semester_id
+LEFT JOIN team_student ts
+    ON s.student_id = ts.student_id
+LEFT JOIN project_team pt
+    ON ts.team_id = pt.team_id
+LEFT JOIN company c
+    ON pt.company_id = c.company_id
+LEFT JOIN advisor_assignment aa
+    ON pt.team_id = aa.team_id
+LEFT JOIN advisor a
+    ON aa.advisor_id = a.advisor_id;
