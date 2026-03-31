@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { login } from "./api";
+import { colors } from "./theme";
 
 const field = { marginBottom: "0.75rem" };
 const inputStyle = {
@@ -17,10 +18,11 @@ const toggleWrap = {
   display: "flex",
   gap: "0",
   marginBottom: "1rem",
-  border: "1px solid #ccc",
-  borderRadius: "8px",
+  border: `1px solid ${colors.border}`,
+  borderRadius: "999px",
   overflow: "hidden",
-  maxWidth: "320px"
+  maxWidth: "320px",
+  backgroundColor: "#f3f6fb"
 };
 
 function toggleBtn(active) {
@@ -30,8 +32,9 @@ function toggleBtn(active) {
     border: "none",
     cursor: "pointer",
     fontWeight: active ? 600 : 400,
-    background: active ? "#1a5f2a" : "#f0f0f0",
-    color: active ? "#fff" : "#333"
+    background: active ? colors.blue : "transparent",
+    color: active ? "#fff" : colors.blueDark,
+    transition: "background-color 0.15s ease, color 0.15s ease"
   };
 }
 
@@ -83,7 +86,16 @@ export function LoginForm({ onLoggedIn }) {
   }
 
   return (
-    <section style={{ maxWidth: "480px" }}>
+    <section
+      style={{
+        maxWidth: "520px",
+        padding: "1.5rem 1.75rem 1.75rem",
+        borderRadius: "12px",
+        backgroundColor: "#ffffff",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
+        border: `1px solid ${colors.border}`
+      }}
+    >
       <h2>{loginMode === "student" ? "Student login" : "Admin login"}</h2>
 
       <div style={toggleWrap} role="group" aria-label="Login as">
@@ -106,12 +118,12 @@ export function LoginForm({ onLoggedIn }) {
       </div>
 
       {loginMode === "student" ? (
-        <p style={{ color: "#555", fontSize: "0.95rem" }}>
+        <p style={{ color: colors.grayText, fontSize: "0.95rem" }}>
           Sample students: passwords <code>student1</code> … <code>student5</code> — see{" "}
           <code>TASK5_UPDATE.md</code> for emails.
         </p>
       ) : (
-        <p style={{ color: "#555", fontSize: "0.95rem" }}>
+        <p style={{ color: colors.grayText, fontSize: "0.95rem" }}>
           Professor / TA: <code>admin@sjsu.edu</code> / <code>admin123</code> (from{" "}
           <code>sample_data.sql</code>).
         </p>
@@ -144,8 +156,24 @@ export function LoginForm({ onLoggedIn }) {
             />
           </label>
         </div>
-        {error && <p style={{ color: "crimson" }}>{error}</p>}
-        <button type="submit" disabled={busy}>
+        {error && <p style={{ color: colors.error }}>{error}</p>}
+        <button
+          type="submit"
+          disabled={busy}
+          style={{
+            marginTop: "0.25rem",
+            padding: "0.55rem 1.25rem",
+            borderRadius: "999px",
+            border: "none",
+            cursor: "pointer",
+            background: "#E5A823",
+            color: "#333333",
+            fontWeight: 700,
+            letterSpacing: "0.02em",
+            boxShadow: "0 3px 8px rgba(0,0,0,0.14)",
+            opacity: busy ? 0.7 : 1
+          }}
+        >
           {busy ? "Signing in…" : loginMode === "student" ? "Sign in as student" : "Sign in as admin"}
         </button>
       </form>

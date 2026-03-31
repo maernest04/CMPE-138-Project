@@ -8,13 +8,14 @@ import {
   leaveTeam,
   logout
 } from "./api";
+import { colors } from "./theme";
 
 const card = {
-  border: "1px solid #ddd",
-  borderRadius: "8px",
+  border: `1px solid ${colors.border}`,
+  borderRadius: "10px",
   padding: "1rem",
   marginBottom: "1rem",
-  background: "#fafafa"
+  background: colors.cardBg
 };
 
 export function StudentDashboard({ user, onLogout }) {
@@ -45,8 +46,8 @@ export function StudentDashboard({ user, onLogout }) {
     const nextJoinSectionId = keepJoinSection
       ? joinSectionId
       : availableSections.length
-      ? availableSections[0].sectionId
-      : null;
+        ? availableSections[0].sectionId
+        : null;
 
     setJoinSectionId(nextJoinSectionId);
 
@@ -154,33 +155,49 @@ export function StudentDashboard({ user, onLogout }) {
           alignItems: "center",
           flexWrap: "wrap",
           gap: "0.5rem",
-          marginBottom: "1.5rem"
+          marginBottom: "1.5rem",
+          paddingBottom: "0.75rem",
+          borderBottom: `3px solid ${colors.blue}`
         }}
       >
         <div>
-          <h2 style={{ margin: 0 }}>Student dashboard</h2>
-          <p style={{ margin: "0.25rem 0 0", color: "#555" }}>
+          <h2 style={{ margin: 0, color: colors.blueDark }}>Student dashboard</h2>
+          <p style={{ margin: "0.25rem 0 0", color: colors.grayText }}>
             {user.studentId} · logged in
           </p>
         </div>
-        <button type="button" onClick={onLogoutClick}>
+        <button
+          type="button"
+          onClick={onLogoutClick}
+          style={{
+            padding: "0.45rem 1.1rem",
+            borderRadius: "999px",
+            border: `1px solid ${colors.blueDark}`,
+            backgroundColor: "#fff",
+            color: colors.blueDark,
+            cursor: "pointer",
+            fontWeight: 500
+          }}
+        >
           Log out
         </button>
       </header>
 
-      {message && <p style={{ color: "green" }}>{message}</p>}
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
+      {message && <p style={{ color: colors.success }}>{message}</p>}
+      {error && <p style={{ color: colors.error }}>{error}</p>}
 
       {!dash ? (
         <p>Loading…</p>
       ) : dash.teams.length === 0 ? (
-        <p style={card}>You are not on any team yet. Create or join one below (per enrolled section).</p>
+        <p style={card}>
+          You are not on any team yet. Create or join one below (per enrolled section).
+        </p>
       ) : (
         dash.teams.map((t) => (
           <article key={t.teamId} style={card}>
             <h3 style={{ marginTop: 0 }}>
               {t.teamName}{" "}
-              <span style={{ fontWeight: "normal", color: "#666" }}>
+              <span style={{ fontWeight: "normal", color: colors.grayMuted }}>
                 · {t.courseCode}-{t.sectionNumber} ({t.season} {t.year})
               </span>
             </h3>
@@ -201,7 +218,21 @@ export function StudentDashboard({ user, onLogout }) {
                 </li>
               ))}
             </ul>
-            <button type="button" disabled={busy} onClick={() => onLeave(t.teamId, t.teamName)}>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onLeave(t.teamId, t.teamName)}
+              style={{
+                marginTop: "0.25rem",
+                padding: "0.4rem 0.9rem",
+                borderRadius: "999px",
+                border: `1px solid ${colors.error}`,
+                backgroundColor: "#fff",
+                color: colors.error,
+                cursor: "pointer",
+                fontSize: "0.9rem"
+              }}
+            >
               Leave team
             </button>
           </article>
@@ -210,7 +241,7 @@ export function StudentDashboard({ user, onLogout }) {
 
       <section style={{ marginTop: "2rem" }}>
         <h3>Create team</h3>
-        <p style={{ color: "#555", fontSize: "0.95rem" }}>
+        <p style={{ color: colors.grayText, fontSize: "0.95rem" }}>
           Only if you are enrolled in the section and not already on a team there.
         </p>
         {creatableSections.length === 0 ? (
@@ -246,7 +277,19 @@ export function StudentDashboard({ user, onLogout }) {
                 />
               </label>
             </div>
-            <button type="submit" disabled={busy}>
+            <button
+              type="submit"
+              disabled={busy}
+              style={{
+                padding: "0.45rem 1.1rem",
+                borderRadius: "999px",
+                border: "none",
+                cursor: "pointer",
+                backgroundColor: colors.blue,
+                color: "#fff",
+                fontWeight: 500
+              }}
+            >
               Create team
             </button>
           </form>
@@ -255,7 +298,7 @@ export function StudentDashboard({ user, onLogout }) {
 
       <section style={{ marginTop: "2rem" }}>
         <h3>Join existing team</h3>
-        <p style={{ color: "#555", fontSize: "0.95rem" }}>
+        <p style={{ color: colors.grayText, fontSize: "0.95rem" }}>
           Pick a section where you are enrolled and not yet on a team.
         </p>
         <div style={{ marginBottom: "0.75rem" }}>
@@ -300,7 +343,20 @@ export function StudentDashboard({ user, onLogout }) {
                   <strong>{t.teamName}</strong> · {t.memberCount}/{t.maxMembers} members
                   {t.companyName ? ` · ${t.companyName}` : ""}
                 </span>
-                <button type="button" disabled={busy} onClick={() => onJoin(t.teamId)}>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => onJoin(t.teamId)}
+                  style={{
+                    padding: "0.4rem 0.9rem",
+                    borderRadius: "999px",
+                    border: "none",
+                    cursor: "pointer",
+                    backgroundColor: colors.gold,
+                    color: "#222",
+                    fontWeight: 500
+                  }}
+                >
                   Join
                 </button>
               </li>
