@@ -292,7 +292,8 @@ export function AdminDashboard({ user, onLogout }) {
     firstName: "",
     lastName: "",
     email: "",
-    major: ""
+    major: "",
+    password: ""
   });
 
   async function refreshAll() {
@@ -467,7 +468,7 @@ export function AdminDashboard({ user, onLogout }) {
                 e.preventDefault();
                 withBusy(
                   () => addSectionStudent(Number(selectedSectionId), newStudent),
-                  "New student created and enrolled."
+                  "New student account created and enrolled."
                 );
               }}
             >
@@ -509,6 +510,15 @@ export function AdminDashboard({ user, onLogout }) {
                   maxLength={fieldLimits.major}
                   value={newStudent.major}
                   onChange={(e) => setNewStudent({ ...newStudent, major: e.target.value })}
+                  required
+                />
+                <input
+                  placeholder="password"
+                  type="password"
+                  minLength={1}
+                  maxLength={72}
+                  value={newStudent.password}
+                  onChange={(e) => setNewStudent({ ...newStudent, password: e.target.value })}
                   required
                 />
               </div>
