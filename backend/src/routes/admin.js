@@ -498,6 +498,17 @@ router.post("/teams/:teamId/advisors", async (req, res) => {
     const team = await getManagedTeam(req.userId, teamId);
     if (!team) return res.status(403).json({ error: "Team not in a managed section" });
 
+    const existingForTeam = await query(
+      `SELECT advisor_id FROM advisor_assignment WHERE team_id = ? LIMIT 1`,
+      [teamId]
+    );
+    if (existingForTeam.length) {
+      if (existingForTeam[0].advisor_id === advisorId) {
+        return res.status(409).json({ error: "Advisor already assigned to this team" });
+      }
+      return res.status(400).json({ error: "This team already has an advisor assigned" });
+    }
+
     const advRows = await query(
       `SELECT advisor_id, max_teams FROM advisor WHERE advisor_id = ? LIMIT 1`,
       [advisorId]
@@ -522,7 +533,7 @@ router.post("/teams/:teamId/advisors", async (req, res) => {
     return res.status(201).json({ ok: true, teamId, advisorId });
   } catch (err) {
     if (err && err.code === "ER_DUP_ENTRY") {
-      return res.status(409).json({ error: "Advisor already assigned to this team" });
+      return res.status(409).json({ error: "Advisor assignment violates unique team/advisor rules" });
     }
     if (err && err.code === "ER_NO_REFERENCED_ROW_2") {
       return res.status(400).json({ error: "Invalid advisor reference" });

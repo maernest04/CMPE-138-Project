@@ -45,12 +45,12 @@ CREATE TABLE IF NOT EXISTS advisor (
   UNIQUE KEY uniq_advisor_email (email)
 ) ENGINE=InnoDB;
 
--- 3c) User accounts for login (ADMIN, STUDENT, or ADVISOR)
+-- 3c) User accounts for login (ADMIN or STUDENT)
 CREATE TABLE IF NOT EXISTS user_account (
   user_id       INT AUTO_INCREMENT PRIMARY KEY,
   email         VARCHAR(100) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  role          ENUM('ADMIN','STUDENT','ADVISOR') NOT NULL,
+  role          ENUM('ADMIN','STUDENT') NOT NULL,
   student_id    CHAR(9) NULL,
   advisor_id    CHAR(9) NULL,
   UNIQUE KEY uniq_user_email (email),
@@ -138,7 +138,8 @@ CREATE TABLE IF NOT EXISTS advisor_assignment (
   CONSTRAINT fk_aa_team
     FOREIGN KEY (team_id) REFERENCES project_team (team_id)
     ON UPDATE CASCADE ON DELETE CASCADE,
-  UNIQUE KEY uniq_advisor_team (advisor_id, team_id)
+  UNIQUE KEY uniq_advisor_team (advisor_id, team_id),
+  UNIQUE KEY uniq_one_advisor_per_team (team_id)
 ) ENGINE=InnoDB;
 
 CREATE INDEX idx_project_team_section_id ON project_team(section_id);

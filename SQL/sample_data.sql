@@ -41,11 +41,9 @@ INSERT INTO student (student_id, first_name, last_name, email, major) VALUES
 AS new ON DUPLICATE KEY UPDATE email = new.email, major = new.major;
 
 -- User accounts for login
--- admin: admin123 (also advisor Ben Reed - manages sections + advises teams); advisors: advisor1, advisor2; students: student1..student5
+-- admin: admin123; students: student1..student5
 INSERT INTO user_account (email, password_hash, role, student_id, advisor_id) VALUES
   ('admin@sjsu.edu', '$2b$10$dcN3E7/oOORUJ/oiHC4BTe5eosDvIgbW3HGmKbNak9iS9vCkwzlOa', 'ADMIN', NULL, '111111111'),
-  ('daphne.chen@sjsu.edu', '$2b$10$hbOs04iZhnHOWQs05Y0vPewHX/ukujzTzhcSrJbkAoqtHT35RfilG', 'ADVISOR', NULL, '222222222'),
-  ('charan.bhaskar@sjsu.edu', '$2b$10$xIwDgvpr6LgswSOM5HlbB.l5arDhJL78Hrde5aKQNpgi7LmVxLT9y', 'ADVISOR', NULL, '333333333'),
   ('nathan.chuop@sjsu.edu', '$2b$10$89S8UY.2IqWpKz2SSo2N/OJ/AbLE7/NLZ.uE5UnG0zfXjSh767KlW', 'STUDENT', '123456789', NULL),
   ('paul.estigoy@sjsu.edu', '$2b$10$XcP/0L4Z6Jt9qoPmB51LcubSVp4iqxktUr/JyGm.Vm9cy23d9kCca', 'STUDENT', '234567890', NULL),
   ('raghav.gautam@sjsu.edu', '$2b$10$D5yv4.v0LzPw6SA.G9c4YOUtsC1quq7bU.7TsmQpxT7m7IQbsuiWm', 'STUDENT', '345678901', NULL),

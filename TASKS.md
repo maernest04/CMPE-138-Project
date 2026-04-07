@@ -26,7 +26,7 @@
 **Scope**
 
 - Own the **ER/EER diagram** and **data requirements**:
-  - `user_account` entity: `user_id` (PK), `email` (unique), `password_hash`, `role` (`ADMIN` / `STUDENT` / `ADVISOR`), optional `student_id` (1–1 to student), optional `advisor_id` (1–1 to advisor).
+- `user_account` entity: `user_id` (PK), `email` (unique), `password_hash`, `role` (`ADMIN` / `STUDENT`), optional `student_id` (1–1 to student), optional `advisor_id` (admins may link to advisor records).
   - `course_section_admin` relationship: links an admin user to one or more `course_section` rows.
   - `advisor` with `advisor_id` CHAR(9) (9-digit ID like student).
 - Maintain and evolve the **SQL schema** in `create_tables.sql`:

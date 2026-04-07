@@ -9,13 +9,13 @@ This repository will be organized as the **DB-Application** root for the CMPE 13
 This application is a small database-backed system to help manage CMPE 195 senior capstone projects.
 It tracks semesters, course sections, students, advisors, companies, project teams, and team membership.
 
-There are three main actors:
+There are two main app actors:
 
 - **Admin (course professor / TA)**: manages course sections, enrolls students into sections, creates and edits
 project teams, and assigns advisors/industry partners to teams. Admins can see and manage all data for the
 sections they own. An admin may also be an advisor (linked via `advisor_id`).
-- **Advisor**: logs in to view their assigned teams and capacity. Cannot manage sections. Advisors are faculty
-with a 9-digit ID (like `111111111`).
+- **Advisor (data entity, not app login role)**: advisors are still faculty records in the database and can be
+assigned by admins to teams, but advisor accounts are not used as a separate app login role.
 - **Student**: logs in, sees their own profile, section, team, advisor(s), and company, and can either create a
 new team in their section (if they are not already on a team) or join an existing team in their section.
 
@@ -47,8 +47,6 @@ MySQL database (tables, views, stored procedures, triggers)
   - Assign students to teams (or remove them) via team membership.
   - Assign advisors and (optionally) industry companies to teams.
   - View advisor capacity and current team load.
-- **Advisor**
-  - View assigned teams and capacity (via `advisor_teams_v`, `advisor_capacity_v`).
 - **Student**
   - Log in to the system and see their own information.
   - View their course section, team, teammates, advisor(s), and company.
