@@ -1,6 +1,7 @@
 const express = require("express");
 const { pool, query } = require("../db");
 const appConfig = require("../appConfig");
+const { hashPassword } = require("../auth/password");
 const { requireAdmin } = require("../middleware/requireAdmin");
 const { logEvent, logWarn } = require("../logger");
 
@@ -97,6 +98,7 @@ router.get("/sections/:sectionId/students", async (req, res) => {
 });
 
 router.post("/sections/:sectionId/students", async (req, res) => {
+  let conn;
   try {
     const sectionId = Number(req.params.sectionId);
     if (!Number.isFinite(sectionId)) {
@@ -112,6 +114,9 @@ router.post("/sections/:sectionId/students", async (req, res) => {
     const lastName = req.body && String(req.body.lastName || "").trim();
     const email = req.body && String(req.body.email || "").trim();
     const major = req.body && String(req.body.major || "").trim();
+    const loginEmailRaw = req.body && String(req.body.loginEmail || "").trim();
+    const password = req.body && String(req.body.password || "");
+    const hasStudentCreateFields = Boolean(firstName || lastName || email || major || loginEmailRaw || password);
 
     if (!studentId) {
       return res.status(400).json({ error: "studentId is required" });
@@ -119,30 +124,50 @@ router.post("/sections/:sectionId/students", async (req, res) => {
     if (!isNineDigitId(studentId)) {
       return res.status(400).json({ error: "studentId must be exactly 9 digits" });
     }
+    if (password && password.length > 72) {
+      return res.status(400).json({ error: "password max 72 characters" });
+    }
 
-    const existing = await query(`SELECT student_id FROM student WHERE student_id = ? LIMIT 1`, [studentId]);
-    if (!existing.length) {
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    const [existingRows] = await conn.execute(`SELECT student_id, email FROM student WHERE student_id = ? LIMIT 1`, [
+      studentId
+    ]);
+    const existing = existingRows[0] || null;
+    let studentEmail = existing ? String(existing.email || "") : email;
+
+    if (!existing) {
       if (!firstName || !lastName || !email || !major) {
+        await conn.rollback();
         return res.status(400).json({
           error: "For a new student, firstName, lastName, email, and major are required"
         });
       }
       if (firstName.length > LIMITS.firstName || lastName.length > LIMITS.lastName) {
+        await conn.rollback();
         return res.status(400).json({
           error: `firstName max ${LIMITS.firstName} chars, lastName max ${LIMITS.lastName} chars`
         });
       }
       if (email.length > LIMITS.studentEmail) {
+        await conn.rollback();
         return res.status(400).json({ error: `email max ${LIMITS.studentEmail} characters` });
       }
       if (major.length > LIMITS.major) {
+        await conn.rollback();
         return res.status(400).json({ error: `major max ${LIMITS.major} characters` });
       }
-      await query(
+      if (!password) {
+        await conn.rollback();
+        return res.status(400).json({ error: "password is required for a new student account" });
+      }
+      await conn.execute(
         `INSERT INTO student (student_id, first_name, last_name, email, major)
          VALUES (?, ?, ?, ?, ?)`,
         [studentId, firstName, lastName, email, major]
       );
+      studentEmail = email;
       logEvent("admin", "created student", {
         action: "student.create",
         userId: req.userId,
@@ -151,20 +176,61 @@ router.post("/sections/:sectionId/students", async (req, res) => {
       });
     }
 
-    await query(`INSERT INTO section_student (section_id, student_id) VALUES (?, ?)`, [sectionId, studentId]);
+    const shouldEnsureStudentLogin = !existing || hasStudentCreateFields;
+    if (shouldEnsureStudentLogin) {
+      const [accountRows] = await conn.execute(
+        `SELECT user_id FROM user_account WHERE student_id = ? LIMIT 1`,
+        [studentId]
+      );
+      if (!accountRows.length) {
+        if (!password) {
+          await conn.rollback();
+          return res.status(400).json({ error: "password is required to create a student login account" });
+        }
+        const loginEmail = loginEmailRaw || studentEmail;
+        if (!loginEmail) {
+          await conn.rollback();
+          return res.status(400).json({ error: "loginEmail required when student has no email" });
+        }
+        if (loginEmail.length > LIMITS.studentEmail) {
+          await conn.rollback();
+          return res.status(400).json({ error: `loginEmail max ${LIMITS.studentEmail} characters` });
+        }
+        const passwordHash = await hashPassword(password);
+        await conn.execute(
+          `INSERT INTO user_account (email, password_hash, role, student_id, advisor_id)
+           VALUES (?, ?, 'STUDENT', ?, NULL)`,
+          [loginEmail, passwordHash, studentId]
+        );
+        logEvent("admin", "created student account", {
+          action: "user_account.create_student",
+          userId: req.userId,
+          sectionId,
+          studentId
+        });
+      }
+    }
+
+    await conn.execute(`INSERT INTO section_student (section_id, student_id) VALUES (?, ?)`, [sectionId, studentId]);
     logEvent("admin", "enrolled student", {
       action: "section.enroll_student",
       userId: req.userId,
       sectionId,
       studentId
     });
+    await conn.commit();
     return res.status(201).json({ ok: true, sectionId, studentId });
   } catch (err) {
+    if (conn) {
+      await conn.rollback();
+    }
     if (err && err.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ error: "Student already exists or already enrolled in this section" });
     }
     logWarn("admin", "add student error", { userId: req.userId, error: String(err) });
     return res.status(500).json({ error: String(err) });
+  } finally {
+    if (conn) conn.release();
   }
 });
 
