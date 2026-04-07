@@ -10,11 +10,7 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
-<<<<<<< HEAD
-    "@vitejs/plugin-react": "^4.0.0",
-=======
     "@vitejs/plugin-react": "^5.0.0",
->>>>>>> d1e5cb7 (Update frontend react version)
     "vite": "^8.0.5"
   }
 }
