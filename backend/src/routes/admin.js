@@ -339,41 +339,52 @@ router.post("/sections/:sectionId/teams", async (req, res) => {
 });
 
 router.put("/teams/:teamId", async (req, res) => {
+  const teamId = Number(req.params.teamId);
+  const team = await getManagedTeam(req.userId, teamId);
+  if (!team) return res.status(403).json({ error: "Team not in a managed section" });
+
+  const teamName = req.body && req.body.teamName !== undefined ? String(req.body.teamName).trim() : null;
+  const companyIdRaw = req.body && req.body.companyId;
+  const companyId =
+    companyIdRaw === null || companyIdRaw === "" || companyIdRaw === undefined ? null : Number(companyIdRaw);
+
+  if (teamName === null && companyIdRaw === undefined) {
+    return res.status(400).json({ error: "Provide teamName and/or companyId" });
+  }
+  if (companyIdRaw !== undefined && companyId !== null && !Number.isFinite(companyId)) {
+    return res.status(400).json({ error: "Invalid companyId" });
+  }
+  if (teamName !== null) {
+    if (!teamName) {
+      return res.status(400).json({ error: "teamName cannot be empty" });
+    }
+    if (teamName.length > LIMITS.teamName) {
+      return res.status(400).json({ error: `teamName max ${LIMITS.teamName} characters` });
+    }
+  }
+  if (companyIdRaw !== undefined && companyId !== null) {
+    const c = await query(`SELECT 1 FROM company WHERE company_id = ? LIMIT 1`, [companyId]);
+    if (!c.length) {
+      return res.status(404).json({ error: "Company not found" });
+    }
+  }
+
+  let conn;
   try {
-    const teamId = Number(req.params.teamId);
-    const team = await getManagedTeam(req.userId, teamId);
-    if (!team) return res.status(403).json({ error: "Team not in a managed section" });
-
-    const teamName = req.body && req.body.teamName !== undefined ? String(req.body.teamName).trim() : null;
-    const companyIdRaw = req.body && req.body.companyId;
-    const companyId =
-      companyIdRaw === null || companyIdRaw === "" || companyIdRaw === undefined ? null : Number(companyIdRaw);
-
-    if (teamName === null && companyIdRaw === undefined) {
-      return res.status(400).json({ error: "Provide teamName and/or companyId" });
-    }
-    if (companyIdRaw !== undefined && companyId !== null && !Number.isFinite(companyId)) {
-      return res.status(400).json({ error: "Invalid companyId" });
-    }
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
 
     if (teamName !== null) {
-      if (!teamName) {
-        return res.status(400).json({ error: "teamName cannot be empty" });
-      }
-      if (teamName.length > LIMITS.teamName) {
-        return res.status(400).json({ error: `teamName max ${LIMITS.teamName} characters` });
-      }
-      await query(`UPDATE project_team SET team_name = ? WHERE team_id = ?`, [teamName, teamId]);
+      await conn.execute(`UPDATE project_team SET team_name = ? WHERE team_id = ?`, [teamName, teamId]);
     }
     if (companyIdRaw !== undefined) {
-      if (companyId !== null) {
-        const c = await query(`SELECT 1 FROM company WHERE company_id = ? LIMIT 1`, [companyId]);
-        if (!c.length) {
-          return res.status(404).json({ error: "Company not found" });
-        }
-      }
-      await query(`UPDATE project_team SET company_id = ? WHERE team_id = ?`, [companyId, teamId]);
+      await conn.execute(`UPDATE project_team SET company_id = ? WHERE team_id = ?`, [companyId, teamId]);
     }
+
+    await conn.commit();
+    conn.release();
+    conn = null;
+
     logEvent("admin", "updated team", {
       action: "team.update",
       userId: req.userId,
@@ -382,12 +393,17 @@ router.put("/teams/:teamId", async (req, res) => {
     });
     return res.json({ ok: true, teamId });
   } catch (err) {
+    if (conn) {
+      try { await conn.rollback(); } catch (_) {}
+      conn.release();
+    }
     if (err && err.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ error: "Team name already used in this section" });
     }
     if (err && err.code === "ER_NO_REFERENCED_ROW_2") {
       return res.status(400).json({ error: "Invalid company reference" });
     }
+    logWarn("admin", "update team error", { userId: req.userId, teamId, error: String(err) });
     return res.status(500).json({ error: String(err) });
   }
 });
