@@ -1,3 +1,4 @@
+// SJSU CMPE 138 SPRING 2026 TEAM2
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 

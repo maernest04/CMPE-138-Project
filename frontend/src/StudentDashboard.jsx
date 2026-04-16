@@ -1,3 +1,4 @@
+// SJSU CMPE 138 SPRING 2026 TEAM2
 import React, { useEffect, useState } from "react";
 import {
   getStudentDashboard,

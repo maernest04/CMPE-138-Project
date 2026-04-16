@@ -1,3 +1,4 @@
+// SJSU CMPE 138 SPRING 2026 TEAM2
 // Signed opaque session cookie (HMAC). Coordinate with Task 3 if you switch to JWT (JSON web token).
 
 const crypto = require("crypto");

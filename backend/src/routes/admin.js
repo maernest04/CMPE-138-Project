@@ -1,3 +1,4 @@
+// SJSU CMPE 138 SPRING 2026 TEAM2
 const express = require("express");
 const { pool, query } = require("../db");
 const appConfig = require("../appConfig");

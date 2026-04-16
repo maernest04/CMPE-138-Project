@@ -1,3 +1,4 @@
+// SJSU CMPE 138 SPRING 2026 TEAM2
 // Minimal login/logout functionalities
 
 const express = require("express");

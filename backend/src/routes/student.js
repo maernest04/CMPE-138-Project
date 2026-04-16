@@ -1,3 +1,4 @@
+// SJSU CMPE 138 SPRING 2026 TEAM2
 // Queries for student dashboard, create team, join team — student_id from session only (requireStudent)
 
 const express = require("express");
