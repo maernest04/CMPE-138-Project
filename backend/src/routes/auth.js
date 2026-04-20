@@ -27,7 +27,7 @@ router.post("/login", async (req, res) => {
 
   try {
     const rows = await query(
-      `SELECT user_id, email, password_hash, role, student_id, advisor_id
+      `SELECT user_id, email, password_hash, role, student_id
        FROM user_account WHERE email = ? LIMIT 1`,
       [email]
     );
@@ -46,8 +46,7 @@ router.post("/login", async (req, res) => {
     const payload = {
       userId: user.user_id,
       role: user.role,
-      studentId: user.student_id || null,
-      advisorId: user.advisor_id || null
+      studentId: user.student_id || null
     };
     const token = sign(payload);
     res.cookie(COOKIE_NAME, token, COOKIE_OPTS);
@@ -63,8 +62,7 @@ router.post("/login", async (req, res) => {
         userId: user.user_id,
         email: user.email,
         role: user.role,
-        studentId: user.student_id,
-        advisorId: user.advisor_id
+        studentId: user.student_id
       }
     });
   } catch (err) {
@@ -87,8 +85,7 @@ router.get("/me", (req, res) => {
     user: {
       userId: u.userId,
       role: u.role,
-      studentId: u.studentId,
-      advisorId: u.advisorId
+      studentId: u.studentId
     }
   });
 });

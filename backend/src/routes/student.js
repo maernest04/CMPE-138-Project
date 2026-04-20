@@ -54,7 +54,6 @@ router.get("/dashboard", async (req, res) => {
           team_id,
           team_name,
           section_id,
-          company_id,
           company_name,
           course_code,
           section_number,
@@ -101,7 +100,6 @@ router.get("/dashboard", async (req, res) => {
         sectionNumber: t.section_number,
         year: t.year,
         season: t.season,
-        companyId: t.company_id,
         companyName: t.company_name,
         teammates: teammates
           .filter((m) => m.team_id === t.team_id)
@@ -155,13 +153,12 @@ router.get("/sections/:sectionId/teams-for-join", async (req, res) => {
     }
 
     const rows = await query(
-      `SELECT t.team_id, t.team_name, t.company_id, c.company_name,
+      `SELECT t.team_id, t.team_name, t.company_name,
               COUNT(ts.student_id) AS member_count
        FROM project_team t
        LEFT JOIN team_student ts ON ts.team_id = t.team_id
-       LEFT JOIN company c ON c.company_id = t.company_id
        WHERE t.section_id = ?
-       GROUP BY t.team_id, t.team_name, t.company_id, c.company_name
+       GROUP BY t.team_id, t.team_name, t.company_name
        HAVING member_count < ?
        ORDER BY t.team_name`,
       [sectionId, MAX_TEAM_MEMBERS]
@@ -193,6 +190,9 @@ router.post("/teams/create", async (req, res) => {
   if (!teamName || !Number.isFinite(sectionId)) {
     return res.status(400).json({ error: "teamName and sectionId required" });
   }
+  if (teamName.length > appConfig.LIMITS.teamName) {
+    return res.status(400).json({ error: `teamName max ${appConfig.LIMITS.teamName} characters` });
+  }
 
     let conn;
   try {
@@ -220,7 +220,7 @@ router.post("/teams/create", async (req, res) => {
     await conn.beginTransaction();
 
     const [ins] = await conn.execute(
-      `INSERT INTO project_team (team_name, section_id, company_id) VALUES (?, ?, NULL)`,
+      `INSERT INTO project_team (team_name, section_id) VALUES (?, ?)`,
       [teamName, sectionId]
     );
     const teamId = ins.insertId;
@@ -401,6 +401,40 @@ router.post("/teams/leave", async (req, res) => {
       conn.release();
     }
     logWarn("student", "leave team error", { studentId, teamId, error: String(err) });
+    return res.status(500).json({ error: String(err) });
+  }
+});
+
+/* Update company name for a team the student is a member of */
+router.put("/teams/:teamId/company", async (req, res) => {
+  const studentId = req.studentId;
+  const teamId = Number(req.params.teamId);
+  if (!Number.isFinite(teamId)) return res.status(400).json({ error: "Invalid teamId" });
+
+  const companyNameRaw = req.body && req.body.companyName;
+  const companyName =
+    companyNameRaw === null || companyNameRaw === "" || companyNameRaw === undefined
+      ? null
+      : String(companyNameRaw).trim();
+
+  if (companyName !== null && companyName.length > 150) {
+    return res.status(400).json({ error: "companyName max 150 characters" });
+  }
+
+  try {
+    const memberCheck = await query(
+      `SELECT 1 FROM team_student WHERE team_id = ? AND student_id = ? LIMIT 1`,
+      [teamId, studentId]
+    );
+    if (!memberCheck.length) {
+      return res.status(403).json({ error: "You are not a member of this team" });
+    }
+
+    await query(`UPDATE project_team SET company_name = ? WHERE team_id = ?`, [companyName, teamId]);
+    logEvent("student", "updated team company", { studentId, teamId, companyName });
+    return res.json({ ok: true, teamId, companyName });
+  } catch (err) {
+    logWarn("student", "update company error", { studentId, teamId, error: String(err) });
     return res.status(500).json({ error: String(err) });
   }
 });

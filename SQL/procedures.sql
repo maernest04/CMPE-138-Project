@@ -40,7 +40,7 @@ BEGIN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Student already has a team in this section';
   END IF;
 
-  INSERT INTO project_team (team_name, section_id, company_id)
+  INSERT INTO project_team (team_name, section_id, company_name)
   VALUES (p_team_name, p_section_id, NULL);
 
   SET v_team_id = LAST_INSERT_ID();
@@ -110,19 +110,13 @@ END$$
 
 CREATE PROCEDURE sp_set_team_company (
   IN p_team_id INT,
-  IN p_company_id INT
+  IN p_company_name VARCHAR(150)
 )
 BEGIN
   START TRANSACTION;
 
-  IF p_company_id IS NOT NULL AND NOT EXISTS (
-    SELECT 1 FROM company WHERE company_id = p_company_id
-  ) THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Company not found';
-  END IF;
-
   UPDATE project_team
-  SET company_id = p_company_id
+  SET company_name = p_company_name
   WHERE team_id = p_team_id;
 
   IF ROW_COUNT() = 0 THEN

@@ -41,6 +41,71 @@ async function getManagedTeam(userId, teamId) {
   return rows[0] || null;
 }
 
+router.post("/sections", async (req, res) => {
+  const courseCode = req.body && String(req.body.courseCode || "").trim();
+  const sectionNumber = req.body && String(req.body.sectionNumber || "").trim();
+  const year = req.body && Number(req.body.year);
+  const season = req.body && String(req.body.season || "").trim();
+
+  if (!courseCode) return res.status(400).json({ error: "courseCode is required" });
+  if (courseCode.length > 20) return res.status(400).json({ error: "courseCode max 20 characters" });
+  if (!sectionNumber) return res.status(400).json({ error: "sectionNumber is required" });
+  if (sectionNumber.length > 10) return res.status(400).json({ error: "sectionNumber max 10 characters" });
+  if (!Number.isInteger(year) || year < 2000 || year > 2100)
+    return res.status(400).json({ error: "year must be a valid 4-digit year (2000–2100)" });
+  if (season !== "Spring" && season !== "Fall")
+    return res.status(400).json({ error: "season must be 'Spring' or 'Fall'" });
+
+  let conn;
+  try {
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+
+    await conn.execute(
+      `INSERT INTO semester (year, season) VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE year = year`,
+      [year, season]
+    );
+    const [semRows] = await conn.execute(
+      `SELECT semester_id FROM semester WHERE year = ? AND season = ? LIMIT 1`,
+      [year, season]
+    );
+    const semesterId = semRows[0].semester_id;
+
+    const [ins] = await conn.execute(
+      `INSERT INTO course_section (course_code, section_number, semester_id) VALUES (?, ?, ?)`,
+      [courseCode, sectionNumber, semesterId]
+    );
+    const sectionId = ins.insertId;
+
+    await conn.execute(
+      `INSERT INTO course_section_admin (user_id, section_id) VALUES (?, ?)`,
+      [req.userId, sectionId]
+    );
+
+    await conn.commit();
+    logEvent("admin", "created section", {
+      action: "section.create",
+      userId: req.userId,
+      sectionId,
+      courseCode,
+      sectionNumber,
+      year,
+      season
+    });
+    return res.status(201).json({ ok: true, sectionId, courseCode, sectionNumber, year, season });
+  } catch (err) {
+    if (conn) await conn.rollback();
+    if (err && err.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ error: "This section already exists for that semester" });
+    }
+    logWarn("admin", "create section error", { userId: req.userId, error: String(err) });
+    return res.status(500).json({ error: String(err) });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
 router.get("/sections", async (req, res) => {
   try {
     const rows = await query(
@@ -59,6 +124,70 @@ router.get("/sections", async (req, res) => {
         season: r.season
       }))
     );
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+router.get("/sections/:sectionId/advisors", async (req, res) => {
+  try {
+    const sectionId = Number(req.params.sectionId);
+    if (!Number.isFinite(sectionId)) return res.status(400).json({ error: "Invalid section" });
+    const allowed = await sectionIsManagedByAdmin(req.userId, sectionId);
+    if (!allowed) return res.status(403).json({ error: "Section not managed by current admin" });
+
+    const rows = await query(
+      `SELECT
+         a.advisor_id, a.name, a.email, a.department, a.max_teams,
+         GROUP_CONCAT(pt.team_name ORDER BY pt.team_name SEPARATOR ', ') AS team_names
+       FROM section_advisor sa
+       JOIN advisor a ON a.advisor_id = sa.advisor_id
+       LEFT JOIN advisor_assignment aa ON aa.advisor_id = sa.advisor_id
+       LEFT JOIN project_team pt
+         ON pt.team_id = aa.team_id AND pt.section_id = sa.section_id
+       WHERE sa.section_id = ?
+       GROUP BY a.advisor_id, a.name, a.email, a.department, a.max_teams
+       ORDER BY a.name`,
+      [sectionId]
+    );
+    res.json(
+      rows.map((r) => ({
+        advisorId: r.advisor_id,
+        name: r.name,
+        email: r.email,
+        department: r.department,
+        maxTeams: r.max_teams,
+        teamNames: r.team_names || null
+      }))
+    );
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+router.post("/sections/:sectionId/advisors", async (req, res) => {
+  try {
+    const sectionId = Number(req.params.sectionId);
+    if (!Number.isFinite(sectionId)) return res.status(400).json({ error: "Invalid section" });
+    const allowed = await sectionIsManagedByAdmin(req.userId, sectionId);
+    if (!allowed) return res.status(403).json({ error: "Section not managed by current admin" });
+
+    const advisorId = String((req.body && req.body.advisorId) || "").trim();
+    if (!advisorId) return res.status(400).json({ error: "advisorId required" });
+    if (!isNineDigitId(advisorId)) return res.status(400).json({ error: "advisorId must be exactly 9 digits" });
+
+    const advRows = await query(`SELECT advisor_id FROM advisor WHERE advisor_id = ? LIMIT 1`, [advisorId]);
+    if (!advRows.length) return res.status(404).json({ error: "Advisor not found" });
+
+    const result = await query(
+      `INSERT IGNORE INTO section_advisor (section_id, advisor_id) VALUES (?, ?)`,
+      [sectionId, advisorId]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(409).json({ error: "Advisor is already in this section" });
+    }
+    logEvent("admin", "added advisor to section", { userId: req.userId, sectionId, advisorId });
+    return res.status(201).json({ ok: true, sectionId, advisorId });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
@@ -199,8 +328,8 @@ router.post("/sections/:sectionId/students", async (req, res) => {
         }
         const passwordHash = await hashPassword(password);
         await conn.execute(
-          `INSERT INTO user_account (email, password_hash, role, student_id, advisor_id)
-           VALUES (?, ?, 'STUDENT', ?, NULL)`,
+          `INSERT INTO user_account (email, password_hash, role, student_id)
+           VALUES (?, ?, 'STUDENT', ?)`,
           [loginEmail, passwordHash, studentId]
         );
         logEvent("admin", "created student account", {
@@ -247,9 +376,8 @@ router.get("/sections/:sectionId/teams", async (req, res) => {
     }
 
     const teams = await query(
-      `SELECT t.team_id, t.team_name, t.company_id, c.company_name
+      `SELECT t.team_id, t.team_name, t.company_name
        FROM project_team t
-       LEFT JOIN company c ON c.company_id = t.company_id
        WHERE t.section_id = ?
        ORDER BY t.team_name`,
       [sectionId]
@@ -284,7 +412,6 @@ router.get("/sections/:sectionId/teams", async (req, res) => {
         return {
           teamId: t.team_id,
           teamName: t.team_name,
-          companyId: t.company_id,
           companyName: t.company_name,
           memberCount: mem.length,
           maxMembers: MAX_TEAM_MEMBERS,
@@ -317,7 +444,7 @@ router.post("/sections/:sectionId/teams", async (req, res) => {
     if (!allowed) {
       return res.status(403).json({ error: "Section not managed by current admin" });
     }
-    const ins = await query(`INSERT INTO project_team (team_name, section_id, company_id) VALUES (?, ?, NULL)`, [
+    const ins = await query(`INSERT INTO project_team (team_name, section_id) VALUES (?, ?)`, [
       teamName,
       sectionId
     ]);
@@ -340,45 +467,40 @@ router.post("/sections/:sectionId/teams", async (req, res) => {
 
 router.put("/teams/:teamId", async (req, res) => {
   const teamId = Number(req.params.teamId);
-  const team = await getManagedTeam(req.userId, teamId);
-  if (!team) return res.status(403).json({ error: "Team not in a managed section" });
+  if (!Number.isFinite(teamId)) return res.status(400).json({ error: "Invalid teamId" });
 
   const teamName = req.body && req.body.teamName !== undefined ? String(req.body.teamName).trim() : null;
-  const companyIdRaw = req.body && req.body.companyId;
-  const companyId =
-    companyIdRaw === null || companyIdRaw === "" || companyIdRaw === undefined ? null : Number(companyIdRaw);
+  const companyNameRaw = req.body && req.body.companyName;
+  const companyName =
+    companyNameRaw === null || companyNameRaw === "" || companyNameRaw === undefined
+      ? null
+      : String(companyNameRaw).trim();
 
-  if (teamName === null && companyIdRaw === undefined) {
-    return res.status(400).json({ error: "Provide teamName and/or companyId" });
-  }
-  if (companyIdRaw !== undefined && companyId !== null && !Number.isFinite(companyId)) {
-    return res.status(400).json({ error: "Invalid companyId" });
+  if (teamName === null && companyNameRaw === undefined) {
+    return res.status(400).json({ error: "Provide teamName and/or companyName" });
   }
   if (teamName !== null) {
-    if (!teamName) {
-      return res.status(400).json({ error: "teamName cannot be empty" });
-    }
+    if (!teamName) return res.status(400).json({ error: "teamName cannot be empty" });
     if (teamName.length > LIMITS.teamName) {
       return res.status(400).json({ error: `teamName max ${LIMITS.teamName} characters` });
     }
   }
-  if (companyIdRaw !== undefined && companyId !== null) {
-    const c = await query(`SELECT 1 FROM company WHERE company_id = ? LIMIT 1`, [companyId]);
-    if (!c.length) {
-      return res.status(404).json({ error: "Company not found" });
-    }
+  if (companyName !== null && companyName.length > 150) {
+    return res.status(400).json({ error: "companyName max 150 characters" });
   }
 
   let conn;
   try {
+    const team = await getManagedTeam(req.userId, teamId);
+    if (!team) return res.status(403).json({ error: "Team not in a managed section" });
     conn = await pool.getConnection();
     await conn.beginTransaction();
 
     if (teamName !== null) {
       await conn.execute(`UPDATE project_team SET team_name = ? WHERE team_id = ?`, [teamName, teamId]);
     }
-    if (companyIdRaw !== undefined) {
-      await conn.execute(`UPDATE project_team SET company_id = ? WHERE team_id = ?`, [companyId, teamId]);
+    if (companyNameRaw !== undefined) {
+      await conn.execute(`UPDATE project_team SET company_name = ? WHERE team_id = ?`, [companyName, teamId]);
     }
 
     await conn.commit();
@@ -399,9 +521,6 @@ router.put("/teams/:teamId", async (req, res) => {
     }
     if (err && err.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ error: "Team name already used in this section" });
-    }
-    if (err && err.code === "ER_NO_REFERENCED_ROW_2") {
-      return res.status(400).json({ error: "Invalid company reference" });
     }
     logWarn("admin", "update team error", { userId: req.userId, teamId, error: String(err) });
     return res.status(500).json({ error: String(err) });
@@ -515,6 +634,14 @@ router.post("/teams/:teamId/advisors", async (req, res) => {
     const team = await getManagedTeam(req.userId, teamId);
     if (!team) return res.status(403).json({ error: "Team not in a managed section" });
 
+    const inSection = await query(
+      `SELECT 1 FROM section_advisor WHERE section_id = ? AND advisor_id = ? LIMIT 1`,
+      [team.section_id, advisorId]
+    );
+    if (!inSection.length) {
+      return res.status(400).json({ error: "Advisor is not enrolled in this team's section" });
+    }
+
     const existingForTeam = await query(
       `SELECT advisor_id FROM advisor_assignment WHERE team_id = ? LIMIT 1`,
       [teamId]
@@ -545,8 +672,25 @@ router.post("/teams/:teamId/advisors", async (req, res) => {
       });
     }
 
-    await query(`INSERT INTO advisor_assignment (advisor_id, team_id) VALUES (?, ?)`, [advisorId, teamId]);
-    logEvent("admin", "assigned advisor", { userId: req.userId, teamId, advisorId });
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      await conn.execute(
+        `INSERT IGNORE INTO section_advisor (section_id, advisor_id) VALUES (?, ?)`,
+        [team.section_id, advisorId]
+      );
+      await conn.execute(
+        `INSERT INTO advisor_assignment (advisor_id, team_id) VALUES (?, ?)`,
+        [advisorId, teamId]
+      );
+      await conn.commit();
+    } catch (txErr) {
+      await conn.rollback();
+      throw txErr;
+    } finally {
+      conn.release();
+    }
+    logEvent("admin", "assigned advisor", { userId: req.userId, teamId, advisorId, sectionId: team.section_id });
     return res.status(201).json({ ok: true, teamId, advisorId });
   } catch (err) {
     if (err && err.code === "ER_DUP_ENTRY") {
@@ -584,6 +728,64 @@ router.delete("/teams/:teamId/advisors/:advisorId", async (req, res) => {
   }
 });
 
+router.post("/advisors", async (req, res) => {
+  const advisorId = req.body && String(req.body.advisorId || "").trim();
+  const name = req.body && String(req.body.name || "").trim();
+  const email = req.body && String(req.body.email || "").trim();
+  const department = req.body && String(req.body.department || "").trim();
+  const maxTeamsRaw = req.body && req.body.maxTeams;
+  const maxTeams =
+    maxTeamsRaw !== undefined && maxTeamsRaw !== "" ? Number(maxTeamsRaw) : 2;
+  const sectionId = req.body && req.body.sectionId ? Number(req.body.sectionId) : null;
+
+  if (!advisorId) return res.status(400).json({ error: "advisorId is required" });
+  if (!isNineDigitId(advisorId))
+    return res.status(400).json({ error: "advisorId must be exactly 9 digits" });
+  if (!name) return res.status(400).json({ error: "name is required" });
+  if (name.length > 100) return res.status(400).json({ error: "name max 100 characters" });
+  if (!email) return res.status(400).json({ error: "email is required" });
+  if (email.length > 100) return res.status(400).json({ error: "email max 100 characters" });
+  if (department && department.length > 100)
+    return res.status(400).json({ error: "department max 100 characters" });
+  if (!Number.isInteger(maxTeams) || maxTeams < 1)
+    return res.status(400).json({ error: "maxTeams must be a whole number of at least 1" });
+  if (sectionId !== null && !Number.isFinite(sectionId))
+    return res.status(400).json({ error: "Invalid sectionId" });
+
+  let conn;
+  try {
+    if (sectionId !== null) {
+      const allowed = await sectionIsManagedByAdmin(req.userId, sectionId);
+      if (!allowed) return res.status(403).json({ error: "Section not managed by current admin" });
+    }
+
+    conn = await pool.getConnection();
+    await conn.beginTransaction();
+    await conn.execute(
+      `INSERT INTO advisor (advisor_id, name, email, department, max_teams) VALUES (?, ?, ?, ?, ?)`,
+      [advisorId, name, email, department || null, maxTeams]
+    );
+    if (sectionId !== null) {
+      await conn.execute(
+        `INSERT IGNORE INTO section_advisor (section_id, advisor_id) VALUES (?, ?)`,
+        [sectionId, advisorId]
+      );
+    }
+    await conn.commit();
+    logEvent("admin", "created advisor", { action: "advisor.create", userId: req.userId, advisorId, sectionId });
+    return res.status(201).json({ ok: true, advisorId });
+  } catch (err) {
+    if (conn) await conn.rollback();
+    if (err && err.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ error: "An advisor with this ID or email already exists" });
+    }
+    logWarn("admin", "create advisor error", { userId: req.userId, error: String(err) });
+    return res.status(500).json({ error: String(err) });
+  } finally {
+    if (conn) conn.release();
+  }
+});
+
 router.get("/advisors", async (_req, res) => {
   try {
     const rows = await query(
@@ -608,24 +810,5 @@ router.get("/advisors", async (_req, res) => {
   }
 });
 
-router.get("/companies", async (_req, res) => {
-  try {
-    const rows = await query(
-      `SELECT company_id, company_name, contact_name, contact_email
-       FROM company
-       ORDER BY company_name`
-    );
-    res.json(
-      rows.map((r) => ({
-        companyId: r.company_id,
-        companyName: r.company_name,
-        contactName: r.contact_name,
-        contactEmail: r.contact_email
-      }))
-    );
-  } catch (err) {
-    res.status(500).json({ error: String(err) });
-  }
-});
 
 module.exports = router;
