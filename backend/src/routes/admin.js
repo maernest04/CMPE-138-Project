@@ -328,8 +328,8 @@ router.post("/sections/:sectionId/students", async (req, res) => {
         }
         const passwordHash = await hashPassword(password);
         await conn.execute(
-          `INSERT INTO user_account (email, password_hash, role, student_id, advisor_id)
-           VALUES (?, ?, 'STUDENT', ?, NULL)`,
+          `INSERT INTO user_account (email, password_hash, role, student_id)
+           VALUES (?, ?, 'STUDENT', ?)`,
           [loginEmail, passwordHash, studentId]
         );
         logEvent("admin", "created student account", {
@@ -467,8 +467,7 @@ router.post("/sections/:sectionId/teams", async (req, res) => {
 
 router.put("/teams/:teamId", async (req, res) => {
   const teamId = Number(req.params.teamId);
-  const team = await getManagedTeam(req.userId, teamId);
-  if (!team) return res.status(403).json({ error: "Team not in a managed section" });
+  if (!Number.isFinite(teamId)) return res.status(400).json({ error: "Invalid teamId" });
 
   const teamName = req.body && req.body.teamName !== undefined ? String(req.body.teamName).trim() : null;
   const companyNameRaw = req.body && req.body.companyName;
@@ -492,6 +491,8 @@ router.put("/teams/:teamId", async (req, res) => {
 
   let conn;
   try {
+    const team = await getManagedTeam(req.userId, teamId);
+    if (!team) return res.status(403).json({ error: "Team not in a managed section" });
     conn = await pool.getConnection();
     await conn.beginTransaction();
 
@@ -633,6 +634,14 @@ router.post("/teams/:teamId/advisors", async (req, res) => {
     const team = await getManagedTeam(req.userId, teamId);
     if (!team) return res.status(403).json({ error: "Team not in a managed section" });
 
+    const inSection = await query(
+      `SELECT 1 FROM section_advisor WHERE section_id = ? AND advisor_id = ? LIMIT 1`,
+      [team.section_id, advisorId]
+    );
+    if (!inSection.length) {
+      return res.status(400).json({ error: "Advisor is not enrolled in this team's section" });
+    }
+
     const existingForTeam = await query(
       `SELECT advisor_id FROM advisor_assignment WHERE team_id = ? LIMIT 1`,
       [teamId]
@@ -663,8 +672,24 @@ router.post("/teams/:teamId/advisors", async (req, res) => {
       });
     }
 
-    await query(`INSERT IGNORE INTO section_advisor (section_id, advisor_id) VALUES (?, ?)`, [team.section_id, advisorId]);
-    await query(`INSERT INTO advisor_assignment (advisor_id, team_id) VALUES (?, ?)`, [advisorId, teamId]);
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      await conn.execute(
+        `INSERT IGNORE INTO section_advisor (section_id, advisor_id) VALUES (?, ?)`,
+        [team.section_id, advisorId]
+      );
+      await conn.execute(
+        `INSERT INTO advisor_assignment (advisor_id, team_id) VALUES (?, ?)`,
+        [advisorId, teamId]
+      );
+      await conn.commit();
+    } catch (txErr) {
+      await conn.rollback();
+      throw txErr;
+    } finally {
+      conn.release();
+    }
     logEvent("admin", "assigned advisor", { userId: req.userId, teamId, advisorId, sectionId: team.section_id });
     return res.status(201).json({ ok: true, teamId, advisorId });
   } catch (err) {
@@ -724,14 +749,16 @@ router.post("/advisors", async (req, res) => {
     return res.status(400).json({ error: "department max 100 characters" });
   if (!Number.isInteger(maxTeams) || maxTeams < 1)
     return res.status(400).json({ error: "maxTeams must be a whole number of at least 1" });
-  if (sectionId !== null) {
-    if (!Number.isFinite(sectionId)) return res.status(400).json({ error: "Invalid sectionId" });
-    const allowed = await sectionIsManagedByAdmin(req.userId, sectionId);
-    if (!allowed) return res.status(403).json({ error: "Section not managed by current admin" });
-  }
+  if (sectionId !== null && !Number.isFinite(sectionId))
+    return res.status(400).json({ error: "Invalid sectionId" });
 
   let conn;
   try {
+    if (sectionId !== null) {
+      const allowed = await sectionIsManagedByAdmin(req.userId, sectionId);
+      if (!allowed) return res.status(403).json({ error: "Section not managed by current admin" });
+    }
+
     conn = await pool.getConnection();
     await conn.beginTransaction();
     await conn.execute(

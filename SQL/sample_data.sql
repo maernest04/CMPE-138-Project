@@ -36,14 +36,14 @@ AS new ON DUPLICATE KEY UPDATE email = new.email, major = new.major;
 
 -- User accounts for login
 -- admin: admin123; students: student1..student5
-INSERT INTO user_account (email, password_hash, role, student_id, advisor_id) VALUES
-  ('admin@sjsu.edu', '$2b$10$dcN3E7/oOORUJ/oiHC4BTe5eosDvIgbW3HGmKbNak9iS9vCkwzlOa', 'ADMIN', NULL, '111111111'),
-  ('nathan.chuop@sjsu.edu', '$2b$10$89S8UY.2IqWpKz2SSo2N/OJ/AbLE7/NLZ.uE5UnG0zfXjSh767KlW', 'STUDENT', '123456789', NULL),
-  ('paul.estigoy@sjsu.edu', '$2b$10$XcP/0L4Z6Jt9qoPmB51LcubSVp4iqxktUr/JyGm.Vm9cy23d9kCca', 'STUDENT', '234567890', NULL),
-  ('raghav.gautam@sjsu.edu', '$2b$10$D5yv4.v0LzPw6SA.G9c4YOUtsC1quq7bU.7TsmQpxT7m7IQbsuiWm', 'STUDENT', '345678901', NULL),
-  ('ernest.ma@sjsu.edu', '$2b$10$6qDhrSB4CVEriQYEIo0VaeQN/4SgI65b0F288.DOShW5gtJAdcQnC', 'STUDENT', '456789012', NULL),
-  ('colin.oliva@sjsu.edu', '$2b$10$dohFVwWSRTvbkGtIbvVpFuiV.fOTmFYLf4upXuZDT9lO.TUgKUC4K', 'STUDENT', '567890123', NULL)
-AS new ON DUPLICATE KEY UPDATE password_hash = new.password_hash, role = new.role, student_id = new.student_id, advisor_id = new.advisor_id;
+INSERT INTO user_account (email, password_hash, role, student_id) VALUES
+  ('admin@sjsu.edu', '$2b$10$dcN3E7/oOORUJ/oiHC4BTe5eosDvIgbW3HGmKbNak9iS9vCkwzlOa', 'ADMIN', NULL),
+  ('nathan.chuop@sjsu.edu', '$2b$10$89S8UY.2IqWpKz2SSo2N/OJ/AbLE7/NLZ.uE5UnG0zfXjSh767KlW', 'STUDENT', '123456789'),
+  ('paul.estigoy@sjsu.edu', '$2b$10$XcP/0L4Z6Jt9qoPmB51LcubSVp4iqxktUr/JyGm.Vm9cy23d9kCca', 'STUDENT', '234567890'),
+  ('raghav.gautam@sjsu.edu', '$2b$10$D5yv4.v0LzPw6SA.G9c4YOUtsC1quq7bU.7TsmQpxT7m7IQbsuiWm', 'STUDENT', '345678901'),
+  ('ernest.ma@sjsu.edu', '$2b$10$6qDhrSB4CVEriQYEIo0VaeQN/4SgI65b0F288.DOShW5gtJAdcQnC', 'STUDENT', '456789012'),
+  ('colin.oliva@sjsu.edu', '$2b$10$dohFVwWSRTvbkGtIbvVpFuiV.fOTmFYLf4upXuZDT9lO.TUgKUC4K', 'STUDENT', '567890123')
+AS new ON DUPLICATE KEY UPDATE password_hash = new.password_hash, role = new.role, student_id = new.student_id;
 
 -- Enroll sample students in CMPE195A-01 (Spring 2026) — required for student create/join team in that section
 INSERT IGNORE INTO section_student (section_id, student_id)
@@ -134,10 +134,10 @@ INSERT INTO student (student_id, first_name, last_name, email, major) VALUES
 AS new ON DUPLICATE KEY UPDATE email = new.email, major = new.major;
 
 -- User accounts (student6 / student7)
-INSERT INTO user_account (email, password_hash, role, student_id, advisor_id) VALUES
-  ('ryan.gossling@sjsu.edu',  '$2b$10$Z.XPkENkoJb9Gbs3sP9YZu.PIvM0J5VqCTDrQ2TzWEpniagAaWxQe', 'STUDENT', '678901234', NULL),
-  ('dwayne.johnson@sjsu.edu', '$2b$10$3svvXTAZshRNj2DhIHo7KeGhmdgnrEU8drDpmX9lk7rWLC/7DPciy', 'STUDENT', '789012345', NULL)
-AS new ON DUPLICATE KEY UPDATE password_hash = new.password_hash, role = new.role, student_id = new.student_id, advisor_id = new.advisor_id;
+INSERT INTO user_account (email, password_hash, role, student_id) VALUES
+  ('ryan.gossling@sjsu.edu',  '$2b$10$Z.XPkENkoJb9Gbs3sP9YZu.PIvM0J5VqCTDrQ2TzWEpniagAaWxQe', 'STUDENT', '678901234'),
+  ('dwayne.johnson@sjsu.edu', '$2b$10$3svvXTAZshRNj2DhIHo7KeGhmdgnrEU8drDpmX9lk7rWLC/7DPciy', 'STUDENT', '789012345')
+AS new ON DUPLICATE KEY UPDATE password_hash = new.password_hash, role = new.role, student_id = new.student_id;
 
 -- Enroll both students in CMPE195B-01 (Spring 2026)
 INSERT IGNORE INTO section_student (section_id, student_id)
@@ -150,7 +150,7 @@ WHERE sem.year = 2026 AND sem.season = 'Spring'
   AND st.student_id IN ('678901234', '789012345');
 
 -- Team Chips in CMPE195B-01
-INSERT IGNORE INTO project_team (team_name, section_id, company_id)
+INSERT IGNORE INTO project_team (team_name, section_id, company_name)
 SELECT 'Team Chips', cs.section_id, NULL
 FROM course_section cs
 JOIN semester sem ON sem.semester_id = cs.semester_id

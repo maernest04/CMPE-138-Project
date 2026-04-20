@@ -190,6 +190,9 @@ router.post("/teams/create", async (req, res) => {
   if (!teamName || !Number.isFinite(sectionId)) {
     return res.status(400).json({ error: "teamName and sectionId required" });
   }
+  if (teamName.length > appConfig.LIMITS.teamName) {
+    return res.status(400).json({ error: `teamName max ${appConfig.LIMITS.teamName} characters` });
+  }
 
     let conn;
   try {

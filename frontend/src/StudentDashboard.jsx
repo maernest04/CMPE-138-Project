@@ -147,8 +147,11 @@ export function StudentDashboard({ user, onLogout }) {
   }
 
   async function onLogoutClick() {
-    await logout();
-    onLogout();
+    try {
+      await logout();
+    } finally {
+      onLogout();
+    }
   }
 
   const creatableSections = enrollments.filter((x) => !x.onTeamInSection);

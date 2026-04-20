@@ -52,15 +52,10 @@ CREATE TABLE IF NOT EXISTS user_account (
   password_hash VARCHAR(255) NOT NULL,
   role          ENUM('ADMIN','STUDENT') NOT NULL,
   student_id    CHAR(9) NULL,
-  advisor_id    CHAR(9) NULL,
   UNIQUE KEY uniq_user_email (email),
   UNIQUE KEY uniq_user_student (student_id),
-  UNIQUE KEY uniq_user_advisor (advisor_id),
   CONSTRAINT fk_user_student
     FOREIGN KEY (student_id) REFERENCES student (student_id)
-    ON UPDATE CASCADE ON DELETE RESTRICT,
-  CONSTRAINT fk_user_advisor
-    FOREIGN KEY (advisor_id) REFERENCES advisor (advisor_id)
     ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB;
 
@@ -176,7 +171,7 @@ LEFT JOIN semester sem
 LEFT JOIN team_student ts
     ON s.student_id = ts.student_id
 LEFT JOIN project_team pt
-    ON ts.team_id = pt.team_id
+    ON ts.team_id = pt.team_id AND pt.section_id = cs.section_id
 LEFT JOIN advisor_assignment aa
     ON pt.team_id = aa.team_id
 LEFT JOIN advisor a

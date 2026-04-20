@@ -57,8 +57,7 @@ export default function App() {
             setUser({
               userId: u.userId,
               role: u.role,
-              studentId: u.studentId,
-              advisorId: u.advisorId
+              studentId: u.studentId
             })
           }
         />

@@ -31,7 +31,7 @@ const card = {
 
 const inputSm = { padding: "0.35rem 0.5rem", marginRight: "0.35rem", marginTop: "0.25rem" };
 
-function TeamEditor({ team, advisors, maxTeamMembers, fieldLimits, busy, withBusy }) {
+function TeamEditor({ team, advisors, sectionAdvisors, maxTeamMembers, fieldLimits, busy, withBusy }) {
   const [rename, setRename] = useState(team.teamName);
   const [addMemberId, setAddMemberId] = useState("");
   const [removeMemberId, setRemoveMemberId] = useState("");
@@ -51,8 +51,12 @@ function TeamEditor({ team, advisors, maxTeamMembers, fieldLimits, busy, withBus
   const maxMembers = team.maxMembers ?? maxTeamMembers;
   const memberCount = team.memberCount ?? team.members.length;
 
+  const sectionAdvisorIds = new Set(sectionAdvisors.map((a) => a.advisorId));
   const assignableAdvisors = advisors.filter(
-    (a) => a.remaining > 0 && !team.advisors.some((x) => x.advisorId === a.advisorId)
+    (a) =>
+      sectionAdvisorIds.has(a.advisorId) &&
+      a.remaining > 0 &&
+      !team.advisors.some((x) => x.advisorId === a.advisorId)
   );
 
   return (
@@ -360,8 +364,11 @@ export function AdminDashboard({ user, onLogout }) {
   }, [selectedSectionId]);
 
   async function onLogoutClick() {
-    await logout();
-    onLogout();
+    try {
+      await logout();
+    } finally {
+      onLogout();
+    }
   }
 
   async function withBusy(fn, successMessage) {
@@ -682,35 +689,28 @@ export function AdminDashboard({ user, onLogout }) {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                if (!assignExistingAdvisorId) return;
+                const id = assignExistingAdvisorId.trim();
+                if (!id) return;
                 withBusy(
-                  () => addAdvisorToSection(Number(selectedSectionId), assignExistingAdvisorId),
+                  () => addAdvisorToSection(Number(selectedSectionId), id),
                   "Advisor added to section."
                 );
                 setAssignExistingAdvisorId("");
               }}
             >
-              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
-                <select
-                  value={assignExistingAdvisorId}
-                  onChange={(e) => setAssignExistingAdvisorId(e.target.value)}
-                  required
-                  style={inputSm}
-                >
-                  <option value="">Select advisor</option>
-                  {advisors.filter((a) => a.remaining > 0).map((a) => (
-                    <option key={a.advisorId} value={a.advisorId}>
-                      {a.name} ({a.advisorId}) — {a.currentTeams}/{a.maxTeams} teams
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="submit"
-                  disabled={busy || !assignExistingAdvisorId}
-                >
-                  Add to section
-                </button>
-              </div>
+              <input
+                placeholder="advisor_id (9 digits)"
+                inputMode="numeric"
+                pattern="\d{9}"
+                minLength={9}
+                maxLength={9}
+                value={assignExistingAdvisorId}
+                onChange={(e) => setAssignExistingAdvisorId(e.target.value)}
+                required
+              />
+              <button type="submit" disabled={busy} style={{ marginLeft: "0.5rem" }}>
+                Add existing
+              </button>
             </form>
 
             <h4 style={{ marginTop: "1.5rem" }}>Create new advisor and assign to this section</h4>
@@ -818,6 +818,7 @@ export function AdminDashboard({ user, onLogout }) {
                   key={t.teamId}
                   team={t}
                   advisors={advisors}
+                  sectionAdvisors={sectionAdvisors}
                   maxTeamMembers={maxTeamMembers}
                   fieldLimits={fieldLimits}
                   busy={busy}
