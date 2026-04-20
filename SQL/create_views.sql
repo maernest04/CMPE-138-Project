@@ -27,18 +27,17 @@ CREATE OR REPLACE VIEW team_overview_v AS
 SELECT
   t.team_id,
   t.team_name,
+  t.company_name,
   s.section_id,
   s.course_code,
   s.section_number,
   sem.year,
   sem.season,
-  c.company_name,
   a.advisor_id,
   a.name AS advisor_name
 FROM project_team t
 JOIN course_section s ON s.section_id = t.section_id
 JOIN semester sem ON sem.semester_id = s.semester_id
-LEFT JOIN company c ON c.company_id = t.company_id
 LEFT JOIN advisor_assignment aa ON aa.team_id = t.team_id
 LEFT JOIN advisor a ON a.advisor_id = aa.advisor_id;
 
@@ -86,15 +85,14 @@ SELECT
   a.name AS advisor_name,
   t.team_id,
   t.team_name,
+  t.company_name,
   s.section_id,
   s.course_code,
   s.section_number,
   sem.year,
-  sem.season,
-  c.company_name
+  sem.season
 FROM advisor a
 JOIN advisor_assignment aa ON aa.advisor_id = a.advisor_id
 JOIN project_team t ON t.team_id = aa.team_id
 JOIN course_section s ON s.section_id = t.section_id
-JOIN semester sem ON sem.semester_id = s.semester_id
-LEFT JOIN company c ON c.company_id = t.company_id;
+JOIN semester sem ON sem.semester_id = s.semester_id;

@@ -7,6 +7,7 @@ import {
   createTeam,
   joinTeam,
   leaveTeam,
+  updateTeamCompany,
   logout
 } from "./api";
 
@@ -28,12 +29,18 @@ export function StudentDashboard({ user, onLogout }) {
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [companyInputs, setCompanyInputs] = useState({});
 
   async function refresh() {
     setError(null);
     const [d, e] = await Promise.all([getStudentDashboard(), getStudentEnrollments()]);
     setDash(d);
     setEnrollments(e);
+    if (d && d.teams) {
+      const inputs = {};
+      d.teams.forEach((t) => { inputs[t.teamId] = t.companyName || ""; });
+      setCompanyInputs(inputs);
+    }
     const availableSections = e.filter((x) => !x.onTeamInSection);
 
     if (!createSectionId && availableSections.length === 1) {
@@ -185,9 +192,41 @@ export function StudentDashboard({ user, onLogout }) {
                 · {t.courseCode}-{t.sectionNumber} ({t.season} {t.year})
               </span>
             </h3>
-            <p>
-              <strong>Company:</strong> {t.companyName || "—"}
-            </p>
+            <div style={{ marginBottom: "0.5rem" }}>
+              <strong>Company: </strong>
+              <span style={{ display: "inline-flex", gap: "0.35rem", alignItems: "center", flexWrap: "wrap", marginTop: "0.25rem" }}>
+                <input
+                  placeholder="Company name (leave blank to clear)"
+                  maxLength={150}
+                  value={companyInputs[t.teamId] ?? ""}
+                  onChange={(e) =>
+                    setCompanyInputs((prev) => ({ ...prev, [t.teamId]: e.target.value }))
+                  }
+                  style={{ padding: "0.3rem 0.5rem", minWidth: "200px" }}
+                />
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={async () => {
+                    setMessage(null);
+                    setError(null);
+                    setBusy(true);
+                    try {
+                      const val = (companyInputs[t.teamId] || "").trim();
+                      await updateTeamCompany(t.teamId, val || null);
+                      setMessage("Company updated.");
+                      await refresh();
+                    } catch (err) {
+                      setError(err.message || String(err));
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  Save
+                </button>
+              </span>
+            </div>
             <p>
               <strong>Advisors:</strong>{" "}
               {t.advisors.length

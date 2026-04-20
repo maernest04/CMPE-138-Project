@@ -97,13 +97,38 @@ export async function leaveTeam(teamId) {
   return handle(res);
 }
 
+export async function updateTeamCompany(teamId, companyName) {
+  const res = await fetch(`/api/student/teams/${teamId}/company`, {
+    method: "PUT",
+    credentials: "include",
+    headers: jsonHeaders,
+    body: JSON.stringify({ companyName })
+  });
+  return handle(res);
+}
+
 export async function getAdminSections() {
   const res = await fetch("/api/admin/sections", { credentials: "include" });
   return handle(res);
 }
 
+export async function createAdminSection(payload) {
+  const res = await fetch("/api/admin/sections", {
+    method: "POST",
+    credentials: "include",
+    headers: jsonHeaders,
+    body: JSON.stringify(payload)
+  });
+  return handle(res);
+}
+
 export async function getAdminSectionStudents(sectionId) {
   const res = await fetch(`/api/admin/sections/${sectionId}/students`, { credentials: "include" });
+  return handle(res);
+}
+
+export async function getAdminSectionAdvisors(sectionId) {
+  const res = await fetch(`/api/admin/sections/${sectionId}/advisors`, { credentials: "include" });
   return handle(res);
 }
 
@@ -173,6 +198,26 @@ export async function getAdminAdvisors() {
   return handle(res);
 }
 
+export async function createAdvisor(payload) {
+  const res = await fetch("/api/admin/advisors", {
+    method: "POST",
+    credentials: "include",
+    headers: jsonHeaders,
+    body: JSON.stringify(payload)
+  });
+  return handle(res);
+}
+
+export async function addAdvisorToSection(sectionId, advisorId) {
+  const res = await fetch(`/api/admin/sections/${sectionId}/advisors`, {
+    method: "POST",
+    credentials: "include",
+    headers: jsonHeaders,
+    body: JSON.stringify({ advisorId })
+  });
+  return handle(res);
+}
+
 export async function addAdvisorToTeam(teamId, advisorId) {
   const res = await fetch(`/api/admin/teams/${teamId}/advisors`, {
     method: "POST",
@@ -191,7 +236,3 @@ export async function removeAdvisorFromTeam(teamId, advisorId) {
   return handle(res);
 }
 
-export async function getAdminCompanies() {
-  const res = await fetch("/api/admin/companies", { credentials: "include" });
-  return handle(res);
-}

@@ -22,7 +22,7 @@
 
 ## Task 2 – Database & ERD Owner (Schema + Data Requirements)
 
-**Owner:** Nathan Choup
+**Owner:** Nathan Chuop
 **Scope**
 
 - Own the **ER/EER diagram** and **data requirements**:

@@ -77,15 +77,6 @@ CREATE TABLE IF NOT EXISTS course_section_admin (
     ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- 4) Industry collaborators / companies
-CREATE TABLE IF NOT EXISTS company (
-  company_id    INT AUTO_INCREMENT PRIMARY KEY,
-  company_name  VARCHAR(150) NOT NULL,
-  contact_name  VARCHAR(100),
-  contact_email VARCHAR(100),
-  UNIQUE KEY uniq_company_name (company_name)
-) ENGINE=InnoDB;
-
 -- 4b) Section enrollment (which students belong to which section; used for student create/join team)
 CREATE TABLE IF NOT EXISTS section_student (
   section_id INT NOT NULL,
@@ -99,18 +90,28 @@ CREATE TABLE IF NOT EXISTS section_student (
     ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- 5) Project teams, per section, optionally linked to a company
-CREATE TABLE IF NOT EXISTS project_team (
-  team_id    INT AUTO_INCREMENT PRIMARY KEY,
-  team_name  VARCHAR(100) NOT NULL,
+-- 4c) Advisor ↔ section enrollment (which advisors belong to which section)
+CREATE TABLE IF NOT EXISTS section_advisor (
   section_id INT NOT NULL,
-  company_id INT NULL,
+  advisor_id CHAR(9) NOT NULL,
+  PRIMARY KEY (section_id, advisor_id),
+  CONSTRAINT fk_sa_section
+    FOREIGN KEY (section_id) REFERENCES course_section (section_id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT fk_sa_advisor
+    FOREIGN KEY (advisor_id) REFERENCES advisor (advisor_id)
+    ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 5) Project teams, per section, optionally with a company name
+CREATE TABLE IF NOT EXISTS project_team (
+  team_id      INT AUTO_INCREMENT PRIMARY KEY,
+  team_name    VARCHAR(100) NOT NULL,
+  section_id   INT NOT NULL,
+  company_name VARCHAR(150) NULL,
   CONSTRAINT fk_team_section
     FOREIGN KEY (section_id) REFERENCES course_section (section_id)
     ON UPDATE CASCADE ON DELETE RESTRICT,
-  CONSTRAINT fk_team_company
-    FOREIGN KEY (company_id) REFERENCES company (company_id)
-    ON UPDATE CASCADE ON DELETE SET NULL,
   UNIQUE KEY uniq_team_name_per_section (team_name, section_id)
 ) ENGINE=InnoDB;
 
@@ -161,8 +162,7 @@ SELECT
     sem.season,
     pt.team_id,
     pt.team_name,
-    c.company_id,
-    c.company_name,
+    pt.company_name,
     a.advisor_id,
     a.name AS advisor_name,
     a.email AS advisor_email
@@ -177,8 +177,6 @@ LEFT JOIN team_student ts
     ON s.student_id = ts.student_id
 LEFT JOIN project_team pt
     ON ts.team_id = pt.team_id
-LEFT JOIN company c
-    ON pt.company_id = c.company_id
 LEFT JOIN advisor_assignment aa
     ON pt.team_id = aa.team_id
 LEFT JOIN advisor a

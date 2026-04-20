@@ -1,14 +1,17 @@
 // SJSU CMPE 138 SPRING 2026 TEAM2
 import React, { useEffect, useState } from "react";
 import {
+  addAdvisorToSection,
   addAdvisorToTeam,
   addSectionStudent,
   addTeamMember,
+  createAdminSection,
   createAdminTeam,
+  createAdvisor,
   deleteAdminTeam,
   getAdminAdvisors,
-  getAdminCompanies,
   getAdminSections,
+  getAdminSectionAdvisors,
   getAdminSectionStudents,
   getAdminSectionTeams,
   getConfig,
@@ -28,22 +31,22 @@ const card = {
 
 const inputSm = { padding: "0.35rem 0.5rem", marginRight: "0.35rem", marginTop: "0.25rem" };
 
-function TeamEditor({ team, companies, advisors, maxTeamMembers, fieldLimits, busy, withBusy }) {
+function TeamEditor({ team, advisors, maxTeamMembers, fieldLimits, busy, withBusy }) {
   const [rename, setRename] = useState(team.teamName);
   const [addMemberId, setAddMemberId] = useState("");
   const [removeMemberId, setRemoveMemberId] = useState("");
   const [removeAdvisorId, setRemoveAdvisorId] = useState("");
   const [assignAdvisorId, setAssignAdvisorId] = useState("");
-  const [companyChoice, setCompanyChoice] = useState(team.companyId ? String(team.companyId) : "");
+  const [companyInput, setCompanyInput] = useState(team.companyName || "");
 
   useEffect(() => {
     setRename(team.teamName);
-    setCompanyChoice(team.companyId ? String(team.companyId) : "");
+    setCompanyInput(team.companyName || "");
     setAddMemberId("");
     setRemoveMemberId("");
     setRemoveAdvisorId("");
     setAssignAdvisorId("");
-  }, [team.teamId, team.teamName, team.companyId]);
+  }, [team.teamId, team.teamName, team.companyName]);
 
   const maxMembers = team.maxMembers ?? maxTeamMembers;
   const memberCount = team.memberCount ?? team.members.length;
@@ -173,18 +176,13 @@ function TeamEditor({ team, companies, advisors, maxTeamMembers, fieldLimits, bu
       <div style={{ marginBottom: "0.75rem" }}>
         <strong>Company</strong>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.35rem", marginTop: "0.25rem" }}>
-          <select
-            value={companyChoice}
-            onChange={(e) => setCompanyChoice(e.target.value)}
-            style={inputSm}
-          >
-            <option value="">Unassign company</option>
-            {companies.map((c) => (
-              <option key={c.companyId} value={String(c.companyId)}>
-                {c.companyName}
-              </option>
-            ))}
-          </select>
+          <input
+            placeholder="Company name (leave blank to clear)"
+            maxLength={150}
+            value={companyInput}
+            onChange={(e) => setCompanyInput(e.target.value)}
+            style={{ ...inputSm, minWidth: "200px" }}
+          />
           <button
             type="button"
             disabled={busy}
@@ -192,9 +190,9 @@ function TeamEditor({ team, companies, advisors, maxTeamMembers, fieldLimits, bu
               withBusy(
                 () =>
                   updateAdminTeam(team.teamId, {
-                    companyId: companyChoice ? Number(companyChoice) : null
+                    companyName: companyInput.trim() || null
                   }),
-                "Company assignment updated."
+                "Company updated."
               )
             }
           >
@@ -273,7 +271,7 @@ export function AdminDashboard({ user, onLogout }) {
   const [students, setStudents] = useState([]);
   const [teams, setTeams] = useState([]);
   const [advisors, setAdvisors] = useState([]);
-  const [companies, setCompanies] = useState([]);
+  const [sectionAdvisors, setSectionAdvisors] = useState([]);
   const [newTeamName, setNewTeamName] = useState("");
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
@@ -297,16 +295,35 @@ export function AdminDashboard({ user, onLogout }) {
     password: ""
   });
 
+  const [newAdvisor, setNewAdvisor] = useState({
+    advisorId: "",
+    name: "",
+    email: "",
+    department: "",
+    maxTeams: "2"
+  });
+
+  const [showStudentList, setShowStudentList] = useState(false);
+  const [showAdvisorList, setShowAdvisorList] = useState(false);
+
+  const [assignExistingAdvisorId, setAssignExistingAdvisorId] = useState("");
+
+  const currentYear = new Date().getFullYear();
+  const [newSection, setNewSection] = useState({
+    courseCode: "",
+    sectionNumber: "",
+    year: String(currentYear),
+    season: "Spring"
+  });
+
   async function refreshAll() {
-    const [sec, adv, comp, cfg] = await Promise.all([
+    const [sec, adv, cfg] = await Promise.all([
       getAdminSections(),
       getAdminAdvisors(),
-      getAdminCompanies(),
       getConfig().catch(() => null)
     ]);
     setSections(sec);
     setAdvisors(adv);
-    setCompanies(comp);
     if (cfg && typeof cfg.maxTeamMembers === "number") {
       setMaxTeamMembers(cfg.maxTeamMembers);
     }
@@ -321,9 +338,14 @@ export function AdminDashboard({ user, onLogout }) {
   async function refreshSection(sectionId) {
     if (!sectionId) return;
     const sid = Number(sectionId);
-    const [st, tm] = await Promise.all([getAdminSectionStudents(sid), getAdminSectionTeams(sid)]);
+    const [st, tm, sa] = await Promise.all([
+      getAdminSectionStudents(sid),
+      getAdminSectionTeams(sid),
+      getAdminSectionAdvisors(sid)
+    ]);
     setStudents(st);
     setTeams(tm);
+    setSectionAdvisors(sa);
   }
 
   useEffect(() => {
@@ -407,7 +429,7 @@ export function AdminDashboard({ user, onLogout }) {
       <section style={card}>
         <h3 style={{ marginTop: 0 }}>Managed sections</h3>
         {sections.length === 0 ? (
-          <p>No sections are assigned to this admin account.</p>
+          <p style={{ color: "#666" }}>No sections are assigned to this admin account yet.</p>
         ) : (
           <select
             value={selectedSectionId}
@@ -421,21 +443,149 @@ export function AdminDashboard({ user, onLogout }) {
             ))}
           </select>
         )}
+
+        <h4 style={{ marginTop: "1.25rem" }}>Create new section</h4>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const yearNum = Number(newSection.year);
+            if (!Number.isInteger(yearNum) || yearNum < 2000 || yearNum > 2100) {
+              setError("Year must be a valid 4-digit year (2000–2100).");
+              return;
+            }
+            withBusy(
+              () =>
+                createAdminSection({
+                  courseCode: newSection.courseCode.trim(),
+                  sectionNumber: newSection.sectionNumber.trim(),
+                  year: yearNum,
+                  season: newSection.season
+                }),
+              "Section created and assigned to your account."
+            );
+          }}
+        >
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
+            <input
+              placeholder="Course code (e.g. CMPE195A)"
+              maxLength={20}
+              value={newSection.courseCode}
+              onChange={(e) => setNewSection({ ...newSection, courseCode: e.target.value })}
+              required
+              style={{ minWidth: "180px" }}
+            />
+            <input
+              placeholder="Section # (e.g. 01)"
+              maxLength={10}
+              value={newSection.sectionNumber}
+              onChange={(e) => setNewSection({ ...newSection, sectionNumber: e.target.value })}
+              required
+              style={{ width: "100px" }}
+            />
+            <input
+              placeholder="Year"
+              type="number"
+              min={2000}
+              max={2100}
+              value={newSection.year}
+              onChange={(e) => setNewSection({ ...newSection, year: e.target.value })}
+              required
+              style={{ width: "80px" }}
+            />
+            <select
+              value={newSection.season}
+              onChange={(e) => setNewSection({ ...newSection, season: e.target.value })}
+              style={inputSm}
+            >
+              <option value="Spring">Spring</option>
+              <option value="Fall">Fall</option>
+            </select>
+            <button type="submit" disabled={busy}>
+              Create section
+            </button>
+          </div>
+        </form>
       </section>
 
       {selectedSectionId && (
         <>
+          {/* Card 1: Section Students list */}
           <section style={card}>
-            <h3 style={{ marginTop: 0 }}>Section students</h3>
-            <ul>
-              {students.map((s) => (
-                <li key={s.studentId}>
-                  {s.studentId} · {s.firstName} {s.lastName} ({s.email})
-                </li>
-              ))}
-            </ul>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h3 style={{ margin: 0 }}>
+                Section students{" "}
+                <span style={{ color: "#666", fontWeight: "normal", fontSize: "0.9rem" }}>
+                  ({students.length})
+                </span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowStudentList((v) => !v)}
+                style={{ fontSize: "0.85rem" }}
+              >
+                {showStudentList ? "Collapse" : "Expand to show all students"}
+              </button>
+            </div>
 
-            <h4>Add existing student to section</h4>
+            {showStudentList && (
+              <ul style={{ marginTop: "0.75rem", marginBottom: 0 }}>
+                {students.length === 0 ? (
+                  <li style={{ color: "#666" }}>No students enrolled yet.</li>
+                ) : (
+                  students.map((s) => (
+                    <li key={s.studentId}>
+                      {s.studentId} · {s.firstName} {s.lastName} ({s.email})
+                    </li>
+                  ))
+                )}
+              </ul>
+            )}
+          </section>
+
+          {/* Card 2: Section Advisors list */}
+          <section style={card}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h3 style={{ margin: 0 }}>
+                Section advisors{" "}
+                <span style={{ color: "#666", fontWeight: "normal", fontSize: "0.9rem" }}>
+                  ({sectionAdvisors.length})
+                </span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAdvisorList((v) => !v)}
+                style={{ fontSize: "0.85rem" }}
+              >
+                {showAdvisorList ? "Collapse" : "Expand to show all advisors"}
+              </button>
+            </div>
+
+            {showAdvisorList && (
+              <ul style={{ marginTop: "0.75rem", marginBottom: 0 }}>
+                {sectionAdvisors.length === 0 ? (
+                  <li style={{ color: "#666" }}>No advisors in this section yet.</li>
+                ) : (
+                  sectionAdvisors.map((a) => (
+                    <li key={a.advisorId}>
+                      {a.advisorId} · {a.name}
+                      {" — "}
+                      {a.teamNames ? (
+                        <em>assigned to {a.teamNames}</em>
+                      ) : (
+                        <span style={{ color: "#888" }}>not yet assigned to a team</span>
+                      )}
+                    </li>
+                  ))
+                )}
+              </ul>
+            )}
+          </section>
+
+          {/* Card 3: Enrollment / creation forms */}
+          <section style={card}>
+            <h3 style={{ marginTop: 0 }}>Enroll &amp; create</h3>
+
+            <h4 style={{ marginTop: 0 }}>Add existing student to section</h4>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -463,7 +613,7 @@ export function AdminDashboard({ user, onLogout }) {
               </button>
             </form>
 
-            <h4 style={{ marginTop: "1rem" }}>Create new student and enroll</h4>
+            <h4 style={{ marginTop: "1rem" }}>Create new student and enroll in this section</h4>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -527,6 +677,112 @@ export function AdminDashboard({ user, onLogout }) {
                 Create + enroll
               </button>
             </form>
+
+            <h4 style={{ marginTop: "1.5rem" }}>Add existing advisor to this section</h4>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!assignExistingAdvisorId) return;
+                withBusy(
+                  () => addAdvisorToSection(Number(selectedSectionId), assignExistingAdvisorId),
+                  "Advisor added to section."
+                );
+                setAssignExistingAdvisorId("");
+              }}
+            >
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
+                <select
+                  value={assignExistingAdvisorId}
+                  onChange={(e) => setAssignExistingAdvisorId(e.target.value)}
+                  required
+                  style={inputSm}
+                >
+                  <option value="">Select advisor</option>
+                  {advisors.filter((a) => a.remaining > 0).map((a) => (
+                    <option key={a.advisorId} value={a.advisorId}>
+                      {a.name} ({a.advisorId}) — {a.currentTeams}/{a.maxTeams} teams
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="submit"
+                  disabled={busy || !assignExistingAdvisorId}
+                >
+                  Add to section
+                </button>
+              </div>
+            </form>
+
+            <h4 style={{ marginTop: "1.5rem" }}>Create new advisor and assign to this section</h4>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const maxTeamsParsed = parseInt(newAdvisor.maxTeams, 10);
+                if (!Number.isInteger(maxTeamsParsed) || maxTeamsParsed < 1) {
+                  setError("Max teams must be a whole number of at least 1.");
+                  return;
+                }
+                withBusy(
+                  () =>
+                    createAdvisor({
+                      advisorId: newAdvisor.advisorId.trim(),
+                      name: newAdvisor.name.trim(),
+                      email: newAdvisor.email.trim(),
+                      department: newAdvisor.department.trim(),
+                      maxTeams: maxTeamsParsed,
+                      sectionId: Number(selectedSectionId)
+                    }),
+                  "New advisor created and added to this section."
+                );
+              }}
+            >
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                <input
+                  placeholder="advisor_id (9 digits)"
+                  inputMode="numeric"
+                  pattern="\d{9}"
+                  minLength={9}
+                  maxLength={9}
+                  value={newAdvisor.advisorId}
+                  onChange={(e) => setNewAdvisor({ ...newAdvisor, advisorId: e.target.value })}
+                  required
+                />
+                <input
+                  placeholder="full name"
+                  maxLength={100}
+                  value={newAdvisor.name}
+                  onChange={(e) => setNewAdvisor({ ...newAdvisor, name: e.target.value })}
+                  required
+                />
+                <input
+                  placeholder="email"
+                  type="email"
+                  maxLength={100}
+                  value={newAdvisor.email}
+                  onChange={(e) => setNewAdvisor({ ...newAdvisor, email: e.target.value })}
+                  required
+                />
+                <input
+                  placeholder="department (optional)"
+                  maxLength={100}
+                  value={newAdvisor.department}
+                  onChange={(e) => setNewAdvisor({ ...newAdvisor, department: e.target.value })}
+                />
+                <input
+                  placeholder="max teams"
+                  type="number"
+                  min={1}
+                  max={99}
+                  style={{ width: "90px" }}
+                  value={newAdvisor.maxTeams}
+                  onChange={(e) => setNewAdvisor({ ...newAdvisor, maxTeams: e.target.value })}
+                  required
+                />
+              </div>
+              <button type="submit" disabled={busy} style={{ marginTop: "0.5rem" }}>
+                Create advisor
+              </button>
+            </form>
           </section>
 
           <section style={card}>
@@ -561,7 +817,6 @@ export function AdminDashboard({ user, onLogout }) {
                 <TeamEditor
                   key={t.teamId}
                   team={t}
-                  companies={companies}
                   advisors={advisors}
                   maxTeamMembers={maxTeamMembers}
                   fieldLimits={fieldLimits}
