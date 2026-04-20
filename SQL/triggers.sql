@@ -22,9 +22,6 @@ BEGIN
   IF NEW.role = 'STUDENT' AND NEW.student_id IS NULL THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'STUDENT account requires student_id';
   END IF;
-  IF NEW.role = 'STUDENT' AND NEW.advisor_id IS NOT NULL THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'STUDENT account cannot reference advisor_id';
-  END IF;
   IF NEW.role = 'ADMIN' AND NEW.student_id IS NOT NULL THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ADMIN account cannot reference student_id';
   END IF;
@@ -36,9 +33,6 @@ FOR EACH ROW
 BEGIN
   IF NEW.role = 'STUDENT' AND NEW.student_id IS NULL THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'STUDENT account requires student_id';
-  END IF;
-  IF NEW.role = 'STUDENT' AND NEW.advisor_id IS NOT NULL THEN
-    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'STUDENT account cannot reference advisor_id';
   END IF;
   IF NEW.role = 'ADMIN' AND NEW.student_id IS NOT NULL THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ADMIN account cannot reference student_id';
