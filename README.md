@@ -7,15 +7,15 @@ This repository will be organized as the **DB-Application** root for the CMPE 13
 ## Miniworld overview
 
 This application is a small database-backed system to help manage CMPE 195 senior capstone projects.
-It tracks semesters, course sections, students, advisors, companies, project teams, and team membership.
+It tracks semesters, course sections, students, advisors, project teams, team membership, and optional company affiliations (stored as a name on each team).
 
-There are three main actors:
+There are two main app actors:
 
 - **Admin (course professor / TA)**: manages course sections, enrolls students into sections, creates and edits
 project teams, and assigns advisors/industry partners to teams. Admins can see and manage all data for the
-sections they own. An admin may also be an advisor (linked via `advisor_id`).
-- **Advisor**: logs in to view their assigned teams and capacity. Cannot manage sections. Advisors are faculty
-with a 9-digit ID (like `111111111`).
+sections they own.
+- **Advisor (data entity, not app login role)**: advisors are still faculty records in the database and can be
+assigned by admins to teams, but advisor accounts are not used as a separate app login role.
 - **Student**: logs in, sees their own profile, section, team, advisor(s), and company, and can either create a
 new team in their section (if they are not already on a team) or join an existing team in their section.
 
@@ -41,21 +41,24 @@ MySQL database (tables, views, stored procedures, triggers)
 ## High-level operations (by role)
 
 - **Admin**
-  - View semesters and course sections (those in `course_section_admin`).
-  - For a given section, view and manage enrolled students.
-  - Create, edit, and delete project teams in a section.
-  - Assign students to teams (or remove them) via team membership.
-  - Assign advisors and (optionally) industry companies to teams.
+  - Create new course sections (and automatically become the section's managing admin).
+  - View course sections they manage (via `course_section_admin`).
+  - Enroll students into sections (creating the student record and login account if needed).
+  - Create, rename, and delete project teams in a section.
+  - Add or remove students from teams (enforcing one team per student per section and a max of 5 members).
+  - Create new advisors and add them to sections.
+  - Assign or unassign advisors to/from teams (enforcing advisor capacity limits).
+  - Set or clear a team's company name.
   - View advisor capacity and current team load.
-- **Advisor**
-  - View assigned teams and capacity (via `advisor_teams_v`, `advisor_capacity_v`).
 - **Student**
   - Log in to the system and see their own information.
-  - View their course section, team, teammates, advisor(s), and company.
+  - View their course section(s), team, teammates, advisor(s), and company name.
   - If not already on a team in that section, create a new team and become its first member.
   - If teams already exist in their section, join an existing team that has capacity.
+  - Leave a team (if the last member leaves, the team is automatically deleted).
+  - Set or update their team's company name.
 
-Login, password hashing, and role-based behavior will be implemented in the **Express backend**.
+Login, password hashing, and role-based behavior are handled in the **Express backend**.
 
 **Task 4 (admin):** see **`TASK4_UPDATE.md`** for API list, how to run/test, demo script, SQL checks, and security notes. Public **`GET /api/config`** exposes `maxTeamMembers` and field length limits. Run **`cd backend && npm run test:admin`** with the server up (steps in that doc).
 
@@ -69,11 +72,13 @@ CMPE138_TEAMn_SOURCES/
     backend/                 # Node.js + Express source code
     frontend/                # React frontend source code
     SQL/
-      create_tables.sql      # schema (tables, FKs, constraints)
-      create_views.sql       # views (advisor_capacity_v, team_overview_v, admin_sections_v, advisor_teams_v, etc.)
-      triggers.sql           # triggers (if any)
-      procedures.sql         # stored procedures (if any)
+      create_tables.sql      # schema (tables, FKs, constraints, student_dashboard_view)
+      create_views.sql       # views (advisor_capacity_v, team_overview_v, team_members_v, admin_sections_v, advisor_teams_v)
+      triggers.sql           # role guard, team size, advisor capacity triggers
+      procedures.sql         # stored procedures (create team, join team, assign advisor)
+      queries.sql            # reference SQL queries mirroring backend operations
       sample_data.sql        # seed data (users, sections, teams, advisors)
+      reset.sql              # drops and recreates the database (dev only)
     scripts/
       hash-password.js       # generates bcrypt hashes for sample_data.sql
     Log/
@@ -128,7 +133,7 @@ This repository is treated as `DB-Application/` in the hierarchy above.
 
 ### 2) Backend (Node.js + Express)
 
-> The backend will live under `backend/` and use raw SQL (no ORM) via `mysql2` or a similar driver.
+> The backend lives under `backend/` and uses raw SQL (no ORM) via `mysql2`.
 
 1. Install dependencies:
   ```bash
@@ -146,32 +151,32 @@ This repository is treated as `DB-Application/` in the hierarchy above.
    export DB_PASSWORD=scv_password
    export DB_NAME=senior_capstone_viewer
   ```
-3. Start the backend server (exact script name may vary once implemented):
+3. Start the backend server:
   ```bash
    npm run dev
   ```
 
 ### 3) Frontend (React)
 
-> The frontend will live under `frontend/` and call the Express backend using JSON APIs.
+> The frontend lives under `frontend/` and calls the Express backend using JSON APIs.
 
 1. Install dependencies:
   ```bash
    cd frontend
    npm install
   ```
-2. Start the React dev server (exact script name may vary once implemented):
+2. Start the React dev server:
   ```bash
    npm run dev
   ```
 3. Open the printed URL in your browser (for example, `http://localhost:5173`) and make sure it can reach the backend API.
 
-**Student login:** After the DB is loaded with `sample_data.sql`, use the student emails from that file with passwords `student1` … `student5`. If you add `section_student` to an existing database, run `SQL/alter_section_student.sql` then re-run `sample_data.sql` for enrollment rows.
+**Student login:** After the DB is loaded with `sample_data.sql`, use the student emails from that file with passwords `student1` … `student5`. Admin login is `admin@sjsu.edu` / `admin123`.
 
 ### Troubleshooting
 
 - **Unknown database `senior_capstone_viewer`**:
-  - The app is connecting to MySQL, but that database does not exist on **that** server yet. Run the SQL scripts in order (see `SQL/FIRST_TIME_SETUP.md`). `create_tables.sql` includes `CREATE DATABASE IF NOT EXISTS senior_capstone_viewer`.
+  - The app is connecting to MySQL, but that database does not exist on **that** server yet. Run the SQL scripts in order (see Setup above). `create_tables.sql` includes `CREATE DATABASE IF NOT EXISTS senior_capstone_viewer`.
   - If you use MySQL Workbench on your machine but `DB_HOST` is `localhost`, you’re on the right track—just load the scripts into the same instance.
     - Run in this order:
   1. `SQL/create_tables.sql` — includes `CREATE DATABASE IF NOT EXISTS senior_capstone_viewer`

@@ -1,3 +1,4 @@
+// SJSU CMPE 138 SPRING 2026 TEAM2
 // Public app limits (must match SQL column sizes in create_tables.sql)
 
 module.exports = {

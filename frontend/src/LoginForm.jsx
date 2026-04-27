@@ -1,3 +1,4 @@
+// SJSU CMPE 138 SPRING 2026 TEAM2
 // Student / Admin login with a toggle (same API; role checked after success)
 
 import React, { useState } from "react";

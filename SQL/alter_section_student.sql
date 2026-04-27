@@ -1,3 +1,4 @@
+-- SJSU CMPE 138 SPRING 2026 TEAM2
 -- Run once if your database was created before section_student existed.
 USE senior_capstone_viewer;
 

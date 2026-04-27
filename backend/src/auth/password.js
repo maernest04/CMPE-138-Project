@@ -1,3 +1,4 @@
+// SJSU CMPE 138 SPRING 2026 TEAM2
 // Auth helpers for password hashing/verification
 // Used by auth routes and potentially user management
 

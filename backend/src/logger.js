@@ -1,3 +1,4 @@
+// SJSU CMPE 138 SPRING 2026 TEAM2
 // Application event log (login, student team actions) -> Log/events.log
 
 const fs = require("fs");

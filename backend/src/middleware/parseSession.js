@@ -1,3 +1,4 @@
+// SJSU CMPE 138 SPRING 2026 TEAM2
 
 const { verify, COOKIE_NAME } = require("../auth/session");
 
