@@ -20,16 +20,23 @@ import {
   removeTeamMember,
   updateAdminTeam
 } from "./api";
+import { colors } from "./theme";
 
 const card = {
-  border: "1px solid #ddd",
-  borderRadius: "8px",
+  border: `1px solid ${colors.border}`,
+  borderRadius: "10px",
   padding: "1rem",
   marginBottom: "1rem",
-  background: "#fafafa"
+  background: colors.cardBg
 };
 
-const inputSm = { padding: "0.35rem 0.5rem", marginRight: "0.35rem", marginTop: "0.25rem" };
+const inputSm = {
+  padding: "0.35rem 0.5rem",
+  marginRight: "0.35rem",
+  marginTop: "0.25rem",
+  borderRadius: "6px",
+  border: `1px solid ${colors.border}`
+};
 
 function TeamEditor({ team, advisors, sectionAdvisors, maxTeamMembers, fieldLimits, busy, withBusy }) {
   const [rename, setRename] = useState(team.teamName);
@@ -60,7 +67,7 @@ function TeamEditor({ team, advisors, sectionAdvisors, maxTeamMembers, fieldLimi
   );
 
   return (
-    <article style={{ ...card, background: "#fff" }}>
+    <article style={{ ...card, background: "#ffffff" }}>
       <h4 style={{ marginTop: 0 }}>
         {team.teamName} ({team.teamId})
       </h4>
@@ -81,7 +88,15 @@ function TeamEditor({ team, advisors, sectionAdvisors, maxTeamMembers, fieldLimi
 
       <div style={{ marginBottom: "0.75rem" }}>
         <strong>Rename team</strong>
-        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.35rem", marginTop: "0.25rem" }}>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: "0.35rem",
+            marginTop: "0.25rem"
+          }}
+        >
           <input
             value={rename}
             onChange={(e) => setRename(e.target.value)}
@@ -94,6 +109,15 @@ function TeamEditor({ team, advisors, sectionAdvisors, maxTeamMembers, fieldLimi
             onClick={() =>
               withBusy(() => updateAdminTeam(team.teamId, { teamName: rename.trim() }), "Team updated.")
             }
+            style={{
+              padding: "0.35rem 0.9rem",
+              borderRadius: "999px",
+              border: "none",
+              cursor: "pointer",
+              backgroundColor: colors.gold,
+              color: "#222",
+              fontWeight: 500
+            }}
           >
             Save name
           </button>
@@ -110,6 +134,15 @@ function TeamEditor({ team, advisors, sectionAdvisors, maxTeamMembers, fieldLimi
             );
             if (!ok) return;
             withBusy(() => deleteAdminTeam(team.teamId), "Team deleted.");
+          }}
+          style={{
+            padding: "0.35rem 0.9rem",
+            borderRadius: "999px",
+            border: `1px solid ${colors.error}`,
+            backgroundColor: "#fff",
+            color: colors.error,
+            cursor: "pointer",
+            fontSize: "0.85rem"
           }}
         >
           Delete team
@@ -139,11 +172,24 @@ function TeamEditor({ team, advisors, sectionAdvisors, maxTeamMembers, fieldLimi
             disabled={busy || memberCount >= maxMembers}
             style={inputSm}
           />
-          <button type="submit" disabled={busy || memberCount >= maxMembers}>
+          <button
+            type="submit"
+            disabled={busy || memberCount >= maxMembers}
+            style={{
+              padding: "0.35rem 0.9rem",
+              borderRadius: "999px",
+              border: "none",
+              cursor: "pointer",
+              backgroundColor: colors.blue,
+              color: "#fff",
+              fontWeight: 500,
+              fontSize: "0.85rem"
+            }}
+          >
             Add
           </button>
           {memberCount >= maxMembers && (
-            <span style={{ color: "#666", marginLeft: "0.5rem" }}>Team is full.</span>
+            <span style={{ color: colors.grayMuted, marginLeft: "0.5rem" }}>Team is full.</span>
           )}
         </form>
       </div>
@@ -170,6 +216,14 @@ function TeamEditor({ team, advisors, sectionAdvisors, maxTeamMembers, fieldLimi
               const sid = removeMemberId;
               withBusy(() => removeTeamMember(team.teamId, sid), "Team member removed.");
               setRemoveMemberId("");
+            }}
+            style={{
+              padding: "0.35rem 0.9rem",
+              borderRadius: "999px",
+              border: `1px solid ${colors.border}`,
+              backgroundColor: "#fff",
+              cursor: "pointer",
+              fontSize: "0.85rem"
             }}
           >
             Remove
@@ -208,7 +262,7 @@ function TeamEditor({ team, advisors, sectionAdvisors, maxTeamMembers, fieldLimi
       <div>
         <strong>Advisor</strong>
         {assignableAdvisors.length === 0 ? (
-          <p style={{ color: "#666", fontSize: "0.9rem", margin: "0.35rem 0 0" }}>
+          <p style={{ color: colors.grayMuted, fontSize: "0.9rem", margin: "0.35rem 0 0" }}>
             No advisors with free capacity (or all eligible advisors are already on this team).
           </p>
         ) : (
@@ -233,7 +287,20 @@ function TeamEditor({ team, advisors, sectionAdvisors, maxTeamMembers, fieldLimi
                 </option>
               ))}
             </select>
-            <button type="submit" disabled={busy || !assignAdvisorId}>
+            <button
+              type="submit"
+              disabled={busy || !assignAdvisorId}
+              style={{
+                padding: "0.35rem 0.9rem",
+                borderRadius: "999px",
+                border: "none",
+                cursor: "pointer",
+                backgroundColor: colors.blue,
+                color: "#fff",
+                fontWeight: 500,
+                fontSize: "0.85rem"
+              }}
+            >
               Assign
             </button>
           </form>
@@ -259,6 +326,14 @@ function TeamEditor({ team, advisors, sectionAdvisors, maxTeamMembers, fieldLimi
               const aid = removeAdvisorId;
               withBusy(() => removeAdvisorFromTeam(team.teamId, aid), "Advisor removed.");
               setRemoveAdvisorId("");
+            }}
+            style={{
+              padding: "0.35rem 0.9rem",
+              borderRadius: "999px",
+              border: `1px solid ${colors.border}`,
+              backgroundColor: "#fff",
+              cursor: "pointer",
+              fontSize: "0.85rem"
             }}
           >
             Remove advisor
@@ -411,27 +486,54 @@ export function AdminDashboard({ user, onLogout }) {
           alignItems: "center",
           flexWrap: "wrap",
           gap: "0.5rem",
-          marginBottom: "1rem"
+          marginBottom: "1rem",
+          paddingBottom: "0.75rem",
+          borderBottom: `3px solid ${colors.blue}`
         }}
       >
         <div>
-          <h2 style={{ margin: 0 }}>Admin dashboard</h2>
-          <p style={{ margin: "0.25rem 0 0", color: "#555" }}>
+          <h2 style={{ margin: 0, color: colors.blueDark }}>Admin dashboard</h2>
+          <p style={{ margin: "0.25rem 0 0", color: colors.grayText }}>
             user #{user.userId} · role {user.role}
           </p>
         </div>
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-          <button type="button" disabled={busy} onClick={handleRefresh}>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={handleRefresh}
+            style={{
+              padding: "0.45rem 1rem",
+              borderRadius: "999px",
+              border: "none",
+              cursor: "pointer",
+              backgroundColor: colors.gold,
+              color: "#222",
+              fontWeight: 500
+            }}
+          >
             Refresh
           </button>
-          <button type="button" onClick={onLogoutClick}>
+          <button
+            type="button"
+            onClick={onLogoutClick}
+            style={{
+              padding: "0.45rem 1rem",
+              borderRadius: "999px",
+              border: `1px solid ${colors.blueDark}`,
+              backgroundColor: "#fff",
+              color: colors.blueDark,
+              cursor: "pointer",
+              fontWeight: 500
+            }}
+          >
             Log out
           </button>
         </div>
       </header>
 
-      {message && <p style={{ color: "green" }}>{message}</p>}
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
+      {message && <p style={{ color: colors.success }}>{message}</p>}
+      {error && <p style={{ color: colors.error }}>{error}</p>}
 
       <section style={card}>
         <h3 style={{ marginTop: 0 }}>Managed sections</h3>
@@ -615,7 +717,21 @@ export function AdminDashboard({ user, onLogout }) {
                 onChange={(e) => setAddExistingStudentId(e.target.value)}
                 required
               />
-              <button type="submit" disabled={busy} style={{ marginLeft: "0.5rem" }}>
+              <button
+                type="submit"
+                disabled={busy}
+                style={{
+                  marginLeft: "0.5rem",
+                  padding: "0.4rem 0.9rem",
+                  borderRadius: "999px",
+                  border: "none",
+                  cursor: "pointer",
+                  backgroundColor: colors.blue,
+                  color: "#fff",
+                  fontWeight: 500,
+                  fontSize: "0.9rem"
+                }}
+              >
                 Add existing
               </button>
             </form>
@@ -680,7 +796,21 @@ export function AdminDashboard({ user, onLogout }) {
                   required
                 />
               </div>
-              <button type="submit" disabled={busy} style={{ marginTop: "0.5rem" }}>
+              <button
+                type="submit"
+                disabled={busy}
+                style={{
+                  marginTop: "0.5rem",
+                  padding: "0.4rem 0.9rem",
+                  borderRadius: "999px",
+                  border: "none",
+                  cursor: "pointer",
+                  backgroundColor: colors.gold,
+                  color: "#222",
+                  fontWeight: 500,
+                  fontSize: "0.9rem"
+                }}
+              >
                 Create + enroll
               </button>
             </form>
@@ -787,7 +917,7 @@ export function AdminDashboard({ user, onLogout }) {
 
           <section style={card}>
             <h3 style={{ marginTop: 0 }}>Team management</h3>
-            <p style={{ color: "#555", fontSize: "0.9rem", marginTop: 0 }}>
+            <p style={{ color: colors.grayText, fontSize: "0.9rem", marginTop: 0 }}>
               Rules: at most <strong>{maxTeamMembers}</strong> members per team; each student{" "}
               <strong>one team per section</strong>; advisors respect <strong>max teams</strong> capacity.
             </p>
@@ -807,7 +937,21 @@ export function AdminDashboard({ user, onLogout }) {
                 onChange={(e) => setNewTeamName(e.target.value)}
                 required
               />
-              <button type="submit" disabled={busy} style={{ marginLeft: "0.5rem" }}>
+              <button
+                type="submit"
+                disabled={busy}
+                style={{
+                  marginLeft: "0.5rem",
+                  padding: "0.4rem 0.9rem",
+                  borderRadius: "999px",
+                  border: "none",
+                  cursor: "pointer",
+                  backgroundColor: colors.blue,
+                  color: "#fff",
+                  fontWeight: 500,
+                  fontSize: "0.9rem"
+                }}
+              >
                 Create team
               </button>
             </form>

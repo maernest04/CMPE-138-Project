@@ -1,8 +1,15 @@
-# CMPE-138-Project
+# CMPE-138-Project: Senior Capstone Viewer
 
 Senior Capstone Viewer – CMPE 195 project management for course professors and students.
 
-This repository will be organized as the **DB-Application** root for the CMPE 138 term project.
+This repository is organized as the **DB-Application** root for the CMPE 138 term project.
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+- **Node.js**: v18.0.0 or higher
+- **MySQL Server**: v8.0 or higher
+- **npm**: v9.0.0 or higher
 
 ## Miniworld overview
 
@@ -32,10 +39,10 @@ against MySQL (no ORM).
 
 High-level flow:
 
-React frontend  
-↓  
-Node.js + Express backend (JSON API)  
-↓  
+React frontend
+↓
+Node.js + Express backend (JSON API)
+↓
 MySQL database (tables, views, stored procedures, triggers)
 
 ## High-level operations (by role)
@@ -60,8 +67,6 @@ MySQL database (tables, views, stored procedures, triggers)
 
 Login, password hashing, and role-based behavior are handled in the **Express backend**.
 
-**Task 4 (admin):** see **`TASK4_UPDATE.md`** for API list, how to run/test, demo script, SQL checks, and security notes. Public **`GET /api/config`** exposes `maxTeamMembers` and field length limits. Run **`cd backend && npm run test:admin`** with the server up (steps in that doc).
-
 ## Project layout
 
 At the end of the project, the folder structure under this repository will match the required CMPE 138 layout:
@@ -69,10 +74,12 @@ At the end of the project, the folder structure under this repository will match
 ```text
 CMPE138_TEAMn_SOURCES/
   DB-Application/            # this repo (application + SQL + logs)
+    CMPE138_Project.png      # project diagram / banner
     backend/                 # Node.js + Express source code
     frontend/                # React frontend source code
     SQL/
       create_tables.sql      # schema (tables, FKs, constraints, student_dashboard_view)
+      alter_section_student.sql # migration for section/student relationships
       create_views.sql       # views (advisor_capacity_v, team_overview_v, team_members_v, admin_sections_v, advisor_teams_v)
       triggers.sql           # role guard, team size, advisor capacity triggers
       procedures.sql         # stored procedures (create team, join team, assign advisor)
@@ -89,47 +96,32 @@ This repository is treated as `DB-Application/` in the hierarchy above.
 
 ## Setup
 
-### 1) MySQL database (schema + app user)
+### 1) MySQL Database Setup
 
-> Task 2 implemented the schema. SQL files live under `SQL/`.
+The database schema and sample data live under `SQL/`. Follow these steps to initialize your database:
 
-1. Log into MySQL as root (interactive):
-  ```bash
+1. **Log into MySQL** as root:
+   ```bash
    mysql -u root -p
-  ```
+   ```
 2. Create tables and load sample data by running the schema files.
-  - Option A (from your normal terminal, run from project root):
-    ```bash
-    mysql -u root -p < SQL/reset.sql
-    mysql -u root -p < SQL/create_tables.sql
-    mysql -u root -p < SQL/create_views.sql
-    mysql -u root -p < SQL/triggers.sql
-    mysql -u root -p < SQL/procedures.sql
-    mysql -u root -p < SQL/sample_data.sql
-    ```
-  - Option B (from inside the MySQL prompt, after `cd` to project root):
-    ```sql
-    SOURCE SQL/reset.sql;
-    SOURCE SQL/create_tables.sql;
-    SOURCE SQL/create_views.sql;
-    SOURCE SQL/triggers.sql;
-    SOURCE SQL/procedures.sql;
-    SOURCE SQL/sample_data.sql;
-    ```
-3. Create a dedicated app user (recommended) and grant access:
-  ```sql
-   -- Universal dev credentials for the whole team (each teammate creates the same user locally)
+   ```bash
+   mysql -u root -p < SQL/reset.sql && \
+   mysql -u root -p < SQL/create_tables.sql && \
+   mysql -u root -p < SQL/alter_section_student.sql && \
+   mysql -u root -p < SQL/create_views.sql && \
+   mysql -u root -p < SQL/triggers.sql && \
+   mysql -u root -p < SQL/procedures.sql && \
+   mysql -u root -p < SQL/sample_data.sql
+   ```
+
+3. **Create the Application User**:
+   ```sql
+   -- Run this inside the MySQL prompt
    CREATE USER IF NOT EXISTS 'scv_user'@'localhost' IDENTIFIED BY 'scv_password';
    GRANT ALL PRIVILEGES ON senior_capstone_viewer.* TO 'scv_user'@'localhost';
    FLUSH PRIVILEGES;
-  ```
-4. Quick verify (optional):
-  ```sql
-  USE senior_capstone_viewer;
-  SHOW TABLES;
-  SELECT * FROM user_account;
-  SELECT * FROM course_section_admin;
-  ```
+   ```
 
 ### 2) Backend (Node.js + Express)
 
@@ -140,17 +132,19 @@ This repository is treated as `DB-Application/` in the hierarchy above.
    cd backend
    npm install
   ```
-2. Configure the database connection using a **`.env`** file (recommended) or shell exports.
-   - The backend loads **`.env`**. Node does **not** read `.env` automatically; the server uses `dotenv` for this.
-   - Set **`DB_PASSWORD`** to the same password your MySQL user uses. If it is wrong or empty while MySQL expects a password, you will see: `Access denied ... (using password: NO)`.
-   - Copy `backend/.env.example` to `backend/.env` or add variables to the project root `.env`.
-  ```bash
-   export DB_HOST=localhost
-   export DB_PORT=3306
-   export DB_USER=scv_user
-   export DB_PASSWORD=scv_password
-   export DB_NAME=senior_capstone_viewer
-  ```
+2. **Environment Configuration**:
+   The backend uses `dotenv` to manage configuration. It looks for a `.env` file in the `backend/` directory first, then falls back to the project root.
+   - Copy `backend/.env.example` to `backend/.env`.
+   - Ensure `DB_PASSWORD` matches your local MySQL setup.
+
+   ```bash
+   # Required environment variables
+   DB_HOST=localhost
+   DB_PORT=3306
+   DB_USER=scv_user
+   DB_PASSWORD=scv_password
+   DB_NAME=senior_capstone_viewer
+   ```
 3. Start the backend server:
   ```bash
    npm run dev
@@ -176,29 +170,40 @@ This repository is treated as `DB-Application/` in the hierarchy above.
 ### Troubleshooting
 
 - **Unknown database `senior_capstone_viewer`**:
-  - The app is connecting to MySQL, but that database does not exist on **that** server yet. Run the SQL scripts in order (see Setup above). `create_tables.sql` includes `CREATE DATABASE IF NOT EXISTS senior_capstone_viewer`.
-  - If you use MySQL Workbench on your machine but `DB_HOST` is `localhost`, you’re on the right track—just load the scripts into the same instance.
-    - Run in this order:
-  1. `SQL/create_tables.sql` — includes `CREATE DATABASE IF NOT EXISTS senior_capstone_viewer`
-  2. `SQL/create_views.sql`
-  3. `SQL/triggers.sql`
-  4. `SQL/procedures.sql`
-  5. `SQL/sample_data.sql`
-      - How to run these files:
-        - MySQL Workbench: connect → File → Open SQL Script → run each file in that order.
-        - OR Command line (from the project folder), if mysql is on your PATH:
-          - cd C:\Users\username\path\to\root\CMPE-138-Project
-          - mysql -u root -p < SQL\create_tables.sql
-          - mysql -u root -p < SQL\create_views.sql
-          - mysql -u root -p < SQL\triggers.sql
-          - mysql -u root -p < SQL\procedures.sql
-          - mysql -u root -p < SQL\sample_data.sql
+  - The database has not been created yet. Ensure you have run `SQL/create_tables.sql` first.
 - **Database access denied**:
-  - Check that the MySQL user/password in your environment variables match the user you created.
-  - Verify that the DB name (`senior_capstone_viewer`) exists and that the user has privileges on it.
+  - Verify your `DB_USER` and `DB_PASSWORD` in the `.env` file match the user created in MySQL.
 - **Backend cannot reach DB**:
-  - Make sure MySQL is running and listening on the expected host/port.
-  - Try a simple manual connection using the same credentials from the terminal.
+  - Ensure the MySQL service is running. Try connecting manually with `mysql -u scv_user -p`.
 - **Frontend cannot reach backend**:
-  - Check CORS configuration on the Express backend (if needed).
-  - Verify that the backend URL and port used in the React app are correct.
+  - Check that the backend is running on the correct port (default: 4000).
+  - Verify that CORS allows your frontend origin (default: `http://localhost:5173`).
+
+## 🚀 Development Scripts
+
+### Backend
+- `npm run dev`: Starts the Express server using `node`.
+- `npm run test:admin`: Runs a diagnostic script to verify Admin API endpoints.
+
+### Frontend
+- `npm run dev`: Starts the Vite development server.
+
+## 🔗 API Overview
+
+| Category | Endpoint | Description |
+| :--- | :--- | :--- |
+| **Auth** | `POST /api/auth/login` | Authenticate user and set session cookie |
+| **Auth** | `POST /api/auth/logout` | Clear session cookie |
+| **Student** | `GET /api/student/profile` | Get current student's profile and team info |
+| **Admin** | `GET /api/admin/sections` | List sections managed by the current admin |
+| **General** | `GET /api/config` | Get system-wide configuration and limits |
+| **Health** | `GET /api/health` | Check backend and database connectivity |
+
+## 👥 Contributors
+
+- **SJSU CMPE 138 Team 2**
+- Nathan Chuop
+- Paul Brandon Estigoy
+- Raghav Gautam
+- Ernest Ma
+- Colin Oliva
