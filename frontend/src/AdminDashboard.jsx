@@ -493,9 +493,9 @@ export function AdminDashboard({ user, onLogout }) {
       >
         <div>
           <h2 style={{ margin: 0, color: colors.blueDark }}>Admin dashboard</h2>
-          <p style={{ margin: "0.25rem 0 0", color: colors.grayText }}>
+          {/* <p style={{ margin: "0.25rem 0 0", color: colors.grayText }}>
             user #{user.userId} · role {user.role}
-          </p>
+          </p> */}
         </div>
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
           <button

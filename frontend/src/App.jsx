@@ -65,15 +65,6 @@ export default function App() {
             >
               Senior Capstone Viewer
             </h1>
-            <p
-              style={{
-                margin: "0.35rem 0 0",
-                color: colors.grayText,
-                fontSize: "0.95rem"
-              }}
-            >
-              Role-based dashboards · Express API + MySQL
-            </p>
           </div>
 
           <div

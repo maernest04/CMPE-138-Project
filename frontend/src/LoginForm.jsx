@@ -120,8 +120,9 @@ export function LoginForm({ onLoggedIn }) {
 
       {loginMode === "student" ? (
         <p style={{ color: colors.grayText, fontSize: "0.95rem" }}>
-          Sample students: passwords <code>student1</code> … <code>student5</code> — see{" "}
-          <code>TASK5_UPDATE.md</code> for emails.
+          {/* Sample students: passwords <code>student1</code> … <code>student5</code> — see{" "}
+          <code>TASK5_UPDATE.md</code> for emails. */}
+          Login with your SJSU email.
         </p>
       ) : (
         <p style={{ color: colors.grayText, fontSize: "0.95rem" }}>
