@@ -221,4 +221,15 @@ BEGIN
   END IF;
 END$$
 
+CREATE TRIGGER trg_team_cleanup_after_delete
+AFTER DELETE ON team_student
+FOR EACH ROW
+BEGIN
+  DECLARE v_member_count INT;
+  SELECT COUNT(*) INTO v_member_count FROM team_student WHERE team_id = OLD.team_id;
+  IF v_member_count = 0 THEN
+    DELETE FROM project_team WHERE team_id = OLD.team_id;
+  END IF;
+END$$
+
 DELIMITER ;
