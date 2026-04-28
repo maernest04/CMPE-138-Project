@@ -104,16 +104,26 @@ The database schema and sample data live under `SQL/`. Follow these steps to ini
    ```bash
    mysql -u root -p
    ```
-2. Create tables and load sample data by running the schema files.
-   ```bash
-   mysql -u root -p < SQL/reset.sql && \
-   mysql -u root -p < SQL/create_tables.sql && \
-   mysql -u root -p < SQL/alter_section_student.sql && \
-   mysql -u root -p < SQL/create_views.sql && \
-   mysql -u root -p < SQL/triggers.sql && \
-   mysql -u root -p < SQL/procedures.sql && \
-   mysql -u root -p < SQL/sample_data.sql
-   ```
+2. **Create tables and load sample data** (choose one):
+   - **Option A: From the terminal** (one-liner):
+     ```bash
+     mysql -u root -p < SQL/reset.sql && \
+     mysql -u root -p < SQL/create_tables.sql && \
+     mysql -u root -p < SQL/alter_section_student.sql && \
+     mysql -u root -p < SQL/create_views.sql && \
+     mysql -u root -p < SQL/triggers.sql && \
+     mysql -u root -p < SQL/procedures.sql && \
+     mysql -u root -p < SQL/sample_data.sql
+     ```
+   - **Option B: From the MySQL prompt** (after logging in):
+     ```sql
+     SOURCE SQL/reset.sql;
+     SOURCE SQL/create_tables.sql;
+     SOURCE SQL/create_views.sql;
+     SOURCE SQL/triggers.sql;
+     SOURCE SQL/procedures.sql;
+     SOURCE SQL/sample_data.sql;
+     ```
 
 3. **Create the Application User**:
    ```sql
